@@ -5,6 +5,7 @@
 ### Cenário 1: E-commerce Básico
 
 #### 1. Criar múltiplos usuários
+
 ```bash
 # Usuário 1
 curl -X POST http://localhost:3000/users \
@@ -35,11 +36,13 @@ curl -X POST http://localhost:3000/users \
 ```
 
 #### 2. Listar todos os usuários
+
 ```bash
 curl http://localhost:3000/users | jq
 ```
 
 #### 3. Criar pedidos para diferentes usuários
+
 ```bash
 # Pedido da Ana (Eletrônicos)
 curl -X POST http://localhost:3000/orders \
@@ -181,6 +184,7 @@ curl -s http://localhost:3000/orders/user/$USER_ID | jq
 ### Cenário 3: Validação de Regras de Negócio
 
 #### Testar transições inválidas de status
+
 ```bash
 # 1. Criar pedido
 ORDER=$(curl -s -X POST http://localhost:3000/orders \
@@ -213,6 +217,7 @@ curl -X PATCH http://localhost:3000/orders/$ORDER_ID/cancel
 ```
 
 #### Testar validação de email único
+
 ```bash
 # 1. Criar primeiro usuário
 curl -X POST http://localhost:3000/users \
@@ -237,6 +242,7 @@ curl -X POST http://localhost:3000/users \
 ### Cenário 4: Relatórios e Consultas
 
 #### Listar todos os pedidos e calcular estatísticas
+
 ```bash
 # Obter todos os pedidos
 ORDERS=$(curl -s http://localhost:3000/orders)
@@ -263,6 +269,7 @@ echo "Ticket médio: R$ $(echo $ORDERS | jq '[.[] | .totalAmount] | add / length
 ## 🧪 Scripts de Teste Automatizados
 
 ### Script completo de testes
+
 ```bash
 #!/bin/bash
 
@@ -363,6 +370,7 @@ echo "==================================="
 ```
 
 Salve como `test-api.sh` e execute:
+
 ```bash
 chmod +x test-api.sh
 ./test-api.sh
@@ -384,6 +392,7 @@ curl http://localhost:3000/users | jq '.[] | {id, name, email}'
 ## 🐛 Testes de Validação
 
 ### Validação de DTOs
+
 ```bash
 # Tentar criar usuário sem nome (deve dar erro 400)
 curl -X POST http://localhost:3000/users \

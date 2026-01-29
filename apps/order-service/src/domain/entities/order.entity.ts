@@ -12,10 +12,7 @@ export class Order implements IOrder {
   ) {}
 
   static create(userId: string, items: IOrderItem[]): Order {
-    const totalAmount = items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
+    const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     return new Order(
       crypto.randomUUID(),

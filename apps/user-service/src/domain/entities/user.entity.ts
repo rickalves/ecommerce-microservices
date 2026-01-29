@@ -21,13 +21,6 @@ export class User implements IUser {
   }
 
   static create(name: string, email: string, password: string): User {
-    return new User(
-      crypto.randomUUID(),
-      name,
-      email,
-      password,
-      new Date(),
-      new Date(),
-    );
+    return new User(crypto.randomUUID(), name, email, password, new Date(), new Date());
   }
 }

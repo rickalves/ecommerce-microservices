@@ -52,6 +52,7 @@
 ## 🏗️ Estrutura DDD por Camada
 
 ### 1. PRESENTATION (Apresentação)
+
 ```
 Responsabilidade: Interface com o mundo externo
 - Controllers (MessagePattern para TCP)
@@ -60,6 +61,7 @@ Responsabilidade: Interface com o mundo externo
 ```
 
 ### 2. APPLICATION (Aplicação)
+
 ```
 Responsabilidade: Orquestração de casos de uso
 - Use Cases (CreateUser, GetUser, etc.)
@@ -68,6 +70,7 @@ Responsabilidade: Orquestração de casos de uso
 ```
 
 ### 3. DOMAIN (Domínio)
+
 ```
 Responsabilidade: Regras de negócio puras
 - Entities (User, Order)
@@ -77,6 +80,7 @@ Responsabilidade: Regras de negócio puras
 ```
 
 ### 4. INFRASTRUCTURE (Infraestrutura)
+
 ```
 Responsabilidade: Implementações técnicas
 - Repository Implementations
@@ -88,6 +92,7 @@ Responsabilidade: Implementações técnicas
 ## 🔄 Fluxo de Comunicação
 
 ### Criar Usuário
+
 ```
 1. Cliente → POST /users
 2. API Gateway → Users Controller
@@ -100,6 +105,7 @@ Responsabilidade: Implementações técnicas
 ```
 
 ### Criar Pedido
+
 ```
 1. Cliente → POST /orders
 2. API Gateway → Orders Controller
@@ -129,6 +135,7 @@ monorepo/
 ## 🎯 Princípios Aplicados
 
 ### DDD (Domain-Driven Design)
+
 - **Entities**: Objetos com identidade (User, Order)
 - **Value Objects**: Objetos imutáveis (OrderItem)
 - **Repositories**: Abstração de persistência
@@ -136,12 +143,14 @@ monorepo/
 - **Separation of Concerns**: Cada camada tem uma responsabilidade
 
 ### Microserviços
+
 - **Independência**: Cada serviço pode ser deployado separadamente
 - **Comunicação TCP**: Protocolo binário eficiente
 - **API Gateway**: Ponto único de entrada
 - **Bounded Contexts**: Cada serviço tem seu contexto delimitado
 
 ### Clean Architecture
+
 - **Dependency Rule**: Dependências apontam para dentro
 - **Domain no centro**: Regras de negócio isoladas
 - **Infrastructure na borda**: Detalhes técnicos isolados
@@ -210,26 +219,31 @@ Status Enum:            │
 ## 🚀 Vantagens da Arquitetura
 
 ### Escalabilidade
+
 - Cada microserviço pode escalar independentemente
 - Load balancing por serviço
 - Horizontal scaling facilitado
 
 ### Manutenibilidade
+
 - Código organizado em camadas
 - Separação clara de responsabilidades
 - Fácil localização de bugs
 
 ### Testabilidade
+
 - Camadas independentes
 - Mocks facilitados pela injeção de dependência
 - Testes unitários por camada
 
 ### Flexibilidade
+
 - Trocar implementação sem afetar outras camadas
 - Adicionar novos serviços facilmente
 - Mudar tecnologia de persistência sem impacto
 
 ### Evolução
+
 - Adicionar novos casos de uso
 - Estender entidades de domínio
 - Novos endpoints na API Gateway

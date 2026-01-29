@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from '@ecommerce/shared';
+
 import { Order } from '../../domain/entities/order.entity';
-import { IOrderRepository, ORDER_REPOSITORY } from '../../domain/repositories/order.repository.interface';
+import {
+  IOrderRepository,
+  ORDER_REPOSITORY,
+} from '../../domain/repositories/order.repository.interface';
 
 @Injectable()
 export class CreateOrderUseCase {

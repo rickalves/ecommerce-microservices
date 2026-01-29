@@ -3,16 +3,19 @@
 ## 1️⃣ Instalação Inicial
 
 ### Navegar para o diretório do projeto
+
 ```bash
 cd ecommerce-microservices
 ```
 
 ### Instalar todas as dependências
+
 ```bash
 pnpm install
 ```
 
 ### Compilar o pacote shared
+
 ```bash
 cd packages/shared
 pnpm build
@@ -22,6 +25,7 @@ cd ../..
 ## 2️⃣ Executar em Desenvolvimento
 
 ### Opção A: Executar todos os serviços de uma vez (Recomendado)
+
 ```bash
 pnpm dev
 ```
@@ -29,6 +33,7 @@ pnpm dev
 ### Opção B: Executar cada serviço em um terminal separado
 
 **Terminal 1 - User Service:**
+
 ```bash
 cd apps/user-service
 pnpm dev
@@ -36,6 +41,7 @@ pnpm dev
 ```
 
 **Terminal 2 - Order Service:**
+
 ```bash
 cd apps/order-service
 pnpm dev
@@ -43,6 +49,7 @@ pnpm dev
 ```
 
 **Terminal 3 - API Gateway:**
+
 ```bash
 cd apps/api-gateway
 pnpm dev
@@ -52,6 +59,7 @@ pnpm dev
 ## 3️⃣ Testar a API
 
 ### Criar um usuário
+
 ```bash
 curl -X POST http://localhost:3000/users \
   -H "Content-Type: application/json" \
@@ -63,6 +71,7 @@ curl -X POST http://localhost:3000/users \
 ```
 
 **Resposta esperada:**
+
 ```json
 {
   "id": "uuid-gerado",
@@ -75,16 +84,19 @@ curl -X POST http://localhost:3000/users \
 ```
 
 ### Listar todos os usuários
+
 ```bash
 curl http://localhost:3000/users
 ```
 
 ### Buscar usuário específico
+
 ```bash
 curl http://localhost:3000/users/{USER_ID}
 ```
 
 ### Criar um pedido
+
 **Importante:** Use o ID do usuário criado anteriormente!
 
 ```bash
@@ -108,6 +120,7 @@ curl -X POST http://localhost:3000/orders \
 ```
 
 **Resposta esperada:**
+
 ```json
 {
   "id": "order-uuid",
@@ -121,52 +134,65 @@ curl -X POST http://localhost:3000/orders \
 ```
 
 ### Listar todos os pedidos
+
 ```bash
 curl http://localhost:3000/orders
 ```
 
 ### Listar pedidos de um usuário específico
+
 ```bash
 curl http://localhost:3000/orders/user/{USER_ID}
 ```
 
 ### Buscar pedido específico
+
 ```bash
 curl http://localhost:3000/orders/{ORDER_ID}
 ```
 
 ### Confirmar pedido
+
 ```bash
 curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/confirm
 ```
+
 Status muda de PENDING → CONFIRMED
 
 ### Enviar pedido
+
 ```bash
 curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/ship
 ```
+
 Status muda de CONFIRMED → SHIPPED
 
 ### Entregar pedido
+
 ```bash
 curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/deliver
 ```
+
 Status muda de SHIPPED → DELIVERED
 
 ### Cancelar pedido
+
 ```bash
 curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/cancel
 ```
+
 **Nota:** Pedidos entregues não podem ser cancelados!
 
 ## 4️⃣ Build para Produção
 
 ### Build de todos os projetos
+
 ```bash
 pnpm build
 ```
 
 ### Executar em produção
+
 ```bash
 pnpm start
 ```
@@ -226,6 +252,7 @@ curl -s http://localhost:3000/orders/user/$USER_ID | jq
 Importe a seguinte collection:
 
 **POST** `http://localhost:3000/users`
+
 ```json
 {
   "name": "Teste User",
@@ -235,6 +262,7 @@ Importe a seguinte collection:
 ```
 
 **POST** `http://localhost:3000/orders`
+
 ```json
 {
   "userId": "{{userId}}",
@@ -242,7 +270,7 @@ Importe a seguinte collection:
     {
       "productId": "produto-1",
       "quantity": 1,
-      "price": 99.90
+      "price": 99.9
     }
   ]
 }
@@ -251,12 +279,14 @@ Importe a seguinte collection:
 ## 7️⃣ Troubleshooting
 
 ### Erro: "Cannot find module '@ecommerce/shared'"
+
 ```bash
 cd packages/shared
 pnpm build
 ```
 
 ### Erro de porta em uso
+
 ```bash
 # Encontrar processo na porta 3000, 3001 ou 3002
 lsof -i :3000
@@ -268,6 +298,7 @@ kill -9 {PID}
 ```
 
 ### Limpar cache do Turbo
+
 ```bash
 rm -rf .turbo
 rm -rf node_modules
@@ -286,44 +317,54 @@ pnpm install
 ## 9️⃣ Executar com Docker
 
 ### Pré-requisitos
+
 - Docker e Docker Compose instalados
 - Recomenda-se compilar `packages/shared` antes de construir as imagens, caso os Dockerfiles dependam de artefatos compilados
 
 ### Construir e subir todos os serviços
+
 ```bash
 docker-compose up --build
 ```
 
 ### Construir e subir em background
+
 ```bash
 docker-compose up -d --build
 ```
 
 ### Ver logs
+
 ```bash
 docker-compose logs --follow
 ```
 
 ### Parar e remover containers
+
 ```bash
 docker-compose down
 ```
 
 ### Rebuild e subir um serviço específico
+
 ```bash
 docker-compose build user-service
 docker-compose up -d user-service
 ```
 
 ### Construir imagem manualmente (exemplo: user-service)
+
 ```bash
 # No diretório raiz do repositório
 docker build -t ecommerce-user-service:dev -f apps/user-service/Dockerfile .
 ```
 
 ### Observações
+
 - Se os Dockerfiles copiarem artefatos compilados do pacote `packages/shared`, execute:
+
 ```bash
 cd packages/shared && pnpm build && cd ../..
 ```
+
 - Se as portas estiverem em uso, pare os containers ou ajuste as portas em `docker-compose.yml`.

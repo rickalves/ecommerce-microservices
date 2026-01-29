@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+
 import { OrderController } from './presentation/controllers/order.controller';
 import { CreateOrderUseCase } from './application/use-cases/create-order.use-case';
 import { GetOrderUseCase } from './application/use-cases/get-order.use-case';

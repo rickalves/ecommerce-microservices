@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+coverage
+.idea
+.vscode
+.DS_Store
+**/node_modules
+**/dist
+**/*.min.js

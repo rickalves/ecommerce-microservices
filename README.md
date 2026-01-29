@@ -5,6 +5,7 @@ Projeto de microserviços usando NestJS com arquitetura DDD (Domain-Driven Desig
 ## 📋 Arquitetura
 
 ### Serviços
+
 - **API Gateway** (porta 3000) - Ponto de entrada HTTP
 - **User Service** (porta 3001) - Gerenciamento de usuários
 - **Order Service** (porta 3002) - Gerenciamento de pedidos
@@ -27,22 +28,26 @@ service/
 ```
 
 ### Pacotes Compartilhados
+
 - **@ecommerce/shared** - DTOs e interfaces compartilhadas
 
 ## 🚀 Instalação
 
 ### Pré-requisitos
+
 - Node.js >= 18
 - pnpm >= 8
 
 ### Passos
 
 1. Instalar dependências:
+
 ```bash
 pnpm install
 ```
 
 2. Compilar pacote shared:
+
 ```bash
 cd packages/shared
 pnpm build
@@ -51,26 +56,31 @@ pnpm build
 ## ▶️ Executar com Docker
 
 ### Construir e iniciar (com docker-compose)
+
 ```bash
 docker-compose up --build
 ```
 
 ### Iniciar em background
+
 ```bash
 docker-compose up -d --build
 ```
 
 ### Parar e remover
+
 ```bash
 docker-compose down
 ```
 
 ### Observação
+
 - Se os Dockerfiles dependerem de `packages/shared` compilado, execute `pnpm build` em `packages/shared` antes de construir as imagens.
 
 ## 📦 Scripts Disponíveis
 
 ### Desenvolvimento
+
 ```bash
 # Iniciar todos os serviços em modo watch
 pnpm dev
@@ -82,6 +92,7 @@ cd apps/api-gateway && pnpm dev
 ```
 
 ### Build
+
 ```bash
 # Build de todos os projetos
 pnpm build
@@ -91,6 +102,7 @@ cd apps/user-service && pnpm build
 ```
 
 ### Produção
+
 ```bash
 # Iniciar todos os serviços
 pnpm start
@@ -101,6 +113,7 @@ pnpm start
 ### Users
 
 **POST** `/users`
+
 ```json
 {
   "name": "João Silva",
@@ -116,6 +129,7 @@ pnpm start
 ### Orders
 
 **POST** `/orders`
+
 ```json
 {
   "userId": "uuid-do-usuario",
@@ -123,7 +137,7 @@ pnpm start
     {
       "productId": "produto-1",
       "quantity": 2,
-      "price": 99.90
+      "price": 99.9
     }
   ]
 }
@@ -146,6 +160,7 @@ pnpm start
 ## 🧪 Testando a API
 
 ### 1. Criar um usuário
+
 ```bash
 curl -X POST http://localhost:3000/users \
   -H "Content-Type: application/json" \
@@ -157,11 +172,13 @@ curl -X POST http://localhost:3000/users \
 ```
 
 ### 2. Listar usuários
+
 ```bash
 curl http://localhost:3000/users
 ```
 
 ### 3. Criar um pedido
+
 ```bash
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
@@ -183,6 +200,7 @@ curl -X POST http://localhost:3000/orders \
 ```
 
 ### 4. Confirmar pedido
+
 ```bash
 curl -X PATCH http://localhost:3000/orders/ID_DO_PEDIDO/confirm
 ```
@@ -205,17 +223,20 @@ ecommerce-microservices/
 ## 🎯 Conceitos Implementados
 
 ### Domain-Driven Design (DDD)
+
 - **Entities**: Objetos com identidade única (User, Order)
 - **Value Objects**: Objetos sem identidade (OrderItem)
 - **Repositories**: Abstração de persistência
 - **Use Cases**: Lógica de aplicação isolada
 
 ### Microserviços
+
 - Comunicação TCP entre serviços
 - API Gateway como ponto de entrada
 - Serviços independentes e desacoplados
 
 ### Turbo Repo
+
 - Build cache inteligente
 - Execução paralela de tarefas
 - Gerenciamento de monorepo

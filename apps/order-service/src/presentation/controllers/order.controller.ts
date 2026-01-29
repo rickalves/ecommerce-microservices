@@ -1,6 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateOrderDto } from '@ecommerce/shared';
+
 import { CreateOrderUseCase } from '../../application/use-cases/create-order.use-case';
 import { GetOrderUseCase } from '../../application/use-cases/get-order.use-case';
 import { UpdateOrderStatusUseCase } from '../../application/use-cases/update-order-status.use-case';

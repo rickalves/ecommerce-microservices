@@ -4,6 +4,9 @@
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
+    "lint": "eslint --ext .ts ./src",
+    "lint:fix": "eslint --ext .ts ./src --fix",
+    "format": "prettier --write ./src",
     "start": "node dist/main",
     "start:prod": "node dist/main"
   },
