@@ -11,6 +11,8 @@ Rules:
 - subject: imperative, concise, max 72 chars, no trailing dot.
 - scope: infer from changed area (api, auth, db, ui, messaging, docs, config, tests, ci, etc.). If unsure, omit scope.
 - If there are multiple relevant changes, prefer one main subject + body with bullets.
+- Generate the message in markdown format ready to copy.
+- Don't include backtick marks.
 
 Body (optional):
 

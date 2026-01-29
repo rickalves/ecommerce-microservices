@@ -36,7 +36,7 @@ service/
 ### Pré-requisitos
 
 - Node.js >= 18
-- pnpm >= 8
+- pnpm >= 10
 
 ### Passos
 
