@@ -1,5 +1,5 @@
 {
-  "extends": "../typescript-config/tsconfig.base.json",
+  "extends": "@ecommerce/typescript-config/nestjs.json",
   "compilerOptions": {
     "outDir": "./dist"
   },

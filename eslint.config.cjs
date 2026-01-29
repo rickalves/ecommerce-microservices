@@ -1,18 +1,18 @@
 module.exports = [
   {
-    ignores: ["node_modules/**"],
+    ignores: ['node_modules/**'],
   },
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: require("@typescript-eslint/parser"),
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 2021,
-        sourceType: "module",
+        sourceType: 'module',
       },
     },
     plugins: {
-      "@typescript-eslint": require("@typescript-eslint/eslint-plugin"),
+      '@typescript-eslint': require('@typescript-eslint/eslint-plugin'),
     },
     rules: {},
   },

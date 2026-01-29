@@ -43,7 +43,10 @@ export class OrdersController {
       return await firstValueFrom(this.orderService.send({ cmd: 'get_orders_by_user' }, userId));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new HttpException(message || 'Failed to fetch orders', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        message || 'Failed to fetch orders',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -53,7 +56,10 @@ export class OrdersController {
       return await firstValueFrom(this.orderService.send({ cmd: 'get_all_orders' }, {}));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new HttpException(message || 'Failed to fetch orders', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        message || 'Failed to fetch orders',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

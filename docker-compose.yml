@@ -24,7 +24,7 @@ services:
     ports:
       - '3001:3001'
     environment:
-      - NODE_ENV=development  
+      - NODE_ENV=development
       - HOST=0.0.0.0
       - PORT=3001
 
@@ -36,6 +36,6 @@ services:
     ports:
       - '3002:3002'
     environment:
-      - NODE_ENV=development  
+      - NODE_ENV=development
       - HOST=0.0.0.0
       - PORT=3002
