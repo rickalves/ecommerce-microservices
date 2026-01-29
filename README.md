@@ -48,6 +48,26 @@ cd packages/shared
 pnpm build
 ```
 
+## ▶️ Executar com Docker
+
+### Construir e iniciar (com docker-compose)
+```bash
+docker-compose up --build
+```
+
+### Iniciar em background
+```bash
+docker-compose up -d --build
+```
+
+### Parar e remover
+```bash
+docker-compose down
+```
+
+### Observação
+- Se os Dockerfiles dependerem de `packages/shared` compilado, execute `pnpm build` em `packages/shared` antes de construir as imagens.
+
 ## 📦 Scripts Disponíveis
 
 ### Desenvolvimento

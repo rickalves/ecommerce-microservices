@@ -282,3 +282,48 @@ pnpm install
 - Dockerizar os serviços
 - Implementar event-driven architecture
 - Adicionar API documentation (Swagger)
+
+## 9️⃣ Executar com Docker
+
+### Pré-requisitos
+- Docker e Docker Compose instalados
+- Recomenda-se compilar `packages/shared` antes de construir as imagens, caso os Dockerfiles dependam de artefatos compilados
+
+### Construir e subir todos os serviços
+```bash
+docker-compose up --build
+```
+
+### Construir e subir em background
+```bash
+docker-compose up -d --build
+```
+
+### Ver logs
+```bash
+docker-compose logs --follow
+```
+
+### Parar e remover containers
+```bash
+docker-compose down
+```
+
+### Rebuild e subir um serviço específico
+```bash
+docker-compose build user-service
+docker-compose up -d user-service
+```
+
+### Construir imagem manualmente (exemplo: user-service)
+```bash
+# No diretório raiz do repositório
+docker build -t ecommerce-user-service:dev -f apps/user-service/Dockerfile .
+```
+
+### Observações
+- Se os Dockerfiles copiarem artefatos compilados do pacote `packages/shared`, execute:
+```bash
+cd packages/shared && pnpm build && cd ../..
+```
+- Se as portas estiverem em uso, pare os containers ou ajuste as portas em `docker-compose.yml`.
