@@ -10,7 +10,12 @@ services:
       - user-service
       - order-service
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=3000
+      - USER_SERVICE_URL=http://user-service:3001
+      - ORDER_SERVICE_URL=http://order-service:3002
+
   user-service:
     build:
       context: .
@@ -19,7 +24,10 @@ services:
     ports:
       - '3001:3001'
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development  
+      - HOST=0.0.0.0
+      - PORT=3001
+
   order-service:
     build:
       context: .
@@ -28,4 +36,6 @@ services:
     ports:
       - '3002:3002'
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development  
+      - HOST=0.0.0.0
+      - PORT=3002
