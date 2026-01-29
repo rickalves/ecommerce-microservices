@@ -22,7 +22,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'create_order' }, createOrderDto));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to create order', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to create order', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -31,7 +32,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'get_order' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'Order not found', HttpStatus.NOT_FOUND);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Order not found', HttpStatus.NOT_FOUND);
     }
   }
 
@@ -40,10 +42,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'get_orders_by_user' }, userId));
     } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to fetch orders',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to fetch orders', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -52,10 +52,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'get_all_orders' }, {}));
     } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to fetch orders',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to fetch orders', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -64,7 +62,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'confirm_order' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to confirm order', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to confirm order', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -73,7 +72,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'ship_order' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to ship order', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to ship order', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -82,7 +82,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'deliver_order' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to deliver order', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to deliver order', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -91,7 +92,8 @@ export class OrdersController {
     try {
       return await firstValueFrom(this.orderService.send({ cmd: 'cancel_order' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to cancel order', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to cancel order', HttpStatus.BAD_REQUEST);
     }
   }
 }

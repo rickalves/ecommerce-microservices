@@ -21,7 +21,8 @@ export class UsersController {
     try {
       return await firstValueFrom(this.userService.send({ cmd: 'create_user' }, createUserDto));
     } catch (error) {
-      throw new HttpException(error.message || 'Failed to create user', HttpStatus.BAD_REQUEST);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to create user', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -30,7 +31,8 @@ export class UsersController {
     try {
       return await firstValueFrom(this.userService.send({ cmd: 'get_user' }, id));
     } catch (error) {
-      throw new HttpException(error.message || 'User not found', HttpStatus.NOT_FOUND);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'User not found', HttpStatus.NOT_FOUND);
     }
   }
 
@@ -39,10 +41,8 @@ export class UsersController {
     try {
       return await firstValueFrom(this.userService.send({ cmd: 'get_all_users' }, {}));
     } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to fetch users',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HttpException(message || 'Failed to fetch users', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

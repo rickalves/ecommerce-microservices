@@ -25,6 +25,7 @@
     "@nestjs/schematics": "^10.1.0",
     "@types/node": "^20.11.0",
     "@types/uuid": "^9.0.7",
+    "@ecommerce/typescript-config": "workspace:*",
     "typescript": "^5.3.3"
   }
 }
