@@ -1,0 +1,3 @@
+{
+  "extends": "@ecommerce/typescript-config/base.json"
+}
