@@ -7,23 +7,23 @@ import { GetUserUseCase } from '../../application/use-cases/get-user.use-case';
 
 @Controller()
 export class UserController {
-  constructor(
-    private readonly createUserUseCase: CreateUserUseCase,
-    private readonly getUserUseCase: GetUserUseCase,
-  ) {}
+    constructor(
+        private readonly createUserUseCase: CreateUserUseCase,
+        private readonly getUserUseCase: GetUserUseCase
+    ) {}
 
-  @MessagePattern({ cmd: 'create_user' })
-  async createUser(@Payload() createUserDto: CreateUserDto) {
-    return this.createUserUseCase.execute(createUserDto);
-  }
+    @MessagePattern({ cmd: 'create_user' })
+    async createUser(@Payload() createUserDto: CreateUserDto) {
+        return this.createUserUseCase.execute(createUserDto);
+    }
 
-  @MessagePattern({ cmd: 'get_user' })
-  async getUser(@Payload() userId: string) {
-    return this.getUserUseCase.execute(userId);
-  }
+    @MessagePattern({ cmd: 'get_user' })
+    async getUser(@Payload() userId: string) {
+        return this.getUserUseCase.execute(userId);
+    }
 
-  @MessagePattern({ cmd: 'get_all_users' })
-  async getAllUsers() {
-    return this.getUserUseCase.getAllUsers();
-  }
+    @MessagePattern({ cmd: 'get_all_users' })
+    async getAllUsers() {
+        return this.getUserUseCase.getAllUsers();
+    }
 }

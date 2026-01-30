@@ -7,13 +7,13 @@ import type { IOrderRepository } from '../../domain/repositories/order.repositor
 
 @Injectable()
 export class CreateOrderUseCase {
-  constructor(
-    @Inject(ORDER_REPOSITORY)
-    private readonly orderRepository: IOrderRepository,
-  ) {}
+    constructor(
+        @Inject(ORDER_REPOSITORY)
+        private readonly orderRepository: IOrderRepository
+    ) {}
 
-  async execute(createOrderDto: CreateOrderDto): Promise<Order> {
-    const order = Order.create(createOrderDto.userId, createOrderDto.items);
-    return this.orderRepository.save(order);
-  }
+    async execute(createOrderDto: CreateOrderDto): Promise<Order> {
+        const order = Order.create(createOrderDto.userId, createOrderDto.items);
+        return this.orderRepository.save(order);
+    }
 }

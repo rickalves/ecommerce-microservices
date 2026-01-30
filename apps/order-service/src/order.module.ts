@@ -8,15 +8,15 @@ import { InMemoryOrderRepository } from './infrastructure/repositories/in-memory
 import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
 
 @Module({
-  controllers: [OrderController],
-  providers: [
-    CreateOrderUseCase,
-    GetOrderUseCase,
-    UpdateOrderStatusUseCase,
-    {
-      provide: ORDER_REPOSITORY,
-      useClass: InMemoryOrderRepository,
-    },
-  ],
+    controllers: [OrderController],
+    providers: [
+        CreateOrderUseCase,
+        GetOrderUseCase,
+        UpdateOrderStatusUseCase,
+        {
+            provide: ORDER_REPOSITORY,
+            useClass: InMemoryOrderRepository,
+        },
+    ],
 })
 export class OrderModule {}

@@ -7,14 +7,14 @@ import { InMemoryUserRepository } from './infrastructure/repositories/in-memory-
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 
 @Module({
-  controllers: [UserController],
-  providers: [
-    CreateUserUseCase,
-    GetUserUseCase,
-    {
-      provide: USER_REPOSITORY,
-      useClass: InMemoryUserRepository,
-    },
-  ],
+    controllers: [UserController],
+    providers: [
+        CreateUserUseCase,
+        GetUserUseCase,
+        {
+            provide: USER_REPOSITORY,
+            useClass: InMemoryUserRepository,
+        },
+    ],
 })
 export class UserModule {}

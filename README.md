@@ -116,9 +116,9 @@ pnpm start
 
 ```json
 {
-  "name": "João Silva",
-  "email": "joao@email.com",
-  "password": "senha123"
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "password": "senha123"
 }
 ```
 
@@ -132,14 +132,14 @@ pnpm start
 
 ```json
 {
-  "userId": "uuid-do-usuario",
-  "items": [
-    {
-      "productId": "produto-1",
-      "quantity": 2,
-      "price": 99.9
-    }
-  ]
+    "userId": "uuid-do-usuario",
+    "items": [
+        {
+            "productId": "produto-1",
+            "quantity": 2,
+            "price": 99.9
+        }
+    ]
 }
 ```
 

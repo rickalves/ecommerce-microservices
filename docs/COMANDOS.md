@@ -74,12 +74,12 @@ curl -X POST http://localhost:3000/users \
 
 ```json
 {
-  "id": "uuid-gerado",
-  "name": "Maria Santos",
-  "email": "maria@email.com",
-  "password": "senha123",
-  "createdAt": "2026-01-28T...",
-  "updatedAt": "2026-01-28T..."
+    "id": "uuid-gerado",
+    "name": "Maria Santos",
+    "email": "maria@email.com",
+    "password": "senha123",
+    "createdAt": "2026-01-28T...",
+    "updatedAt": "2026-01-28T..."
 }
 ```
 
@@ -255,9 +255,9 @@ Importe a seguinte collection:
 
 ```json
 {
-  "name": "Teste User",
-  "email": "teste@email.com",
-  "password": "senha123"
+    "name": "Teste User",
+    "email": "teste@email.com",
+    "password": "senha123"
 }
 ```
 
@@ -265,14 +265,14 @@ Importe a seguinte collection:
 
 ```json
 {
-  "userId": "{{userId}}",
-  "items": [
-    {
-      "productId": "produto-1",
-      "quantity": 1,
-      "price": 99.9
-    }
-  ]
+    "userId": "{{userId}}",
+    "items": [
+        {
+            "productId": "produto-1",
+            "quantity": 1,
+            "price": 99.9
+        }
+    ]
 }
 ```
 

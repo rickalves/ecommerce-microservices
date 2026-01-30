@@ -4,20 +4,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        })
+    );
 
-  app.enableCors();
+    app.enableCors();
 
-  await app.listen(3000, '0.0.0.0');
-  console.log('API Gateway is running on http://localhost:3000');
+    await app.listen(3000, '0.0.0.0');
+    console.log('API Gateway is running on http://localhost:3000');
 }
 
 bootstrap();

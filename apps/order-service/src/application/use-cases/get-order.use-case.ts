@@ -6,26 +6,26 @@ import type { IOrderRepository } from '../../domain/repositories/order.repositor
 
 @Injectable()
 export class GetOrderUseCase {
-  constructor(
-    @Inject(ORDER_REPOSITORY)
-    private readonly orderRepository: IOrderRepository,
-  ) {}
+    constructor(
+        @Inject(ORDER_REPOSITORY)
+        private readonly orderRepository: IOrderRepository
+    ) {}
 
-  async execute(orderId: string): Promise<Order> {
-    const order = await this.orderRepository.findById(orderId);
+    async execute(orderId: string): Promise<Order> {
+        const order = await this.orderRepository.findById(orderId);
 
-    if (!order) {
-      throw new Error('Order not found');
+        if (!order) {
+            throw new Error('Order not found');
+        }
+
+        return order;
     }
 
-    return order;
-  }
+    async getOrdersByUser(userId: string): Promise<Order[]> {
+        return this.orderRepository.findByUserId(userId);
+    }
 
-  async getOrdersByUser(userId: string): Promise<Order[]> {
-    return this.orderRepository.findByUserId(userId);
-  }
-
-  async getAllOrders(): Promise<Order[]> {
-    return this.orderRepository.findAll();
-  }
+    async getAllOrders(): Promise<Order[]> {
+        return this.orderRepository.findAll();
+    }
 }
