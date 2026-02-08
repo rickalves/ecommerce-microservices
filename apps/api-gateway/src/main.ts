@@ -22,8 +22,20 @@ async function bootstrap() {
         .setTitle('E-commerce Microservices API')
         .setDescription('API Gateway para o sistema de e-commerce com arquitetura de microserviços')
         .setVersion('1.0')
+        .addTag('auth', 'Autenticação JWT')
         .addTag('users', 'Gerenciamento de usuários')
         .addTag('orders', 'Gerenciamento de pedidos')
+        .addBearerAuth(
+            {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+                description: 'Enter JWT token',
+                name: 'Authorization',
+                in: 'header',
+            },
+            'JWT-auth'
+        )
         .build();
 
     const document = SwaggerModule.createDocument(app, config);

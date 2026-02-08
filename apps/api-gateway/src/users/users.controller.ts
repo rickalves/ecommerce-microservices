@@ -9,15 +9,25 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiParam,
+    ApiBody,
+    ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CreateUserDto, UserResponseDto } from '@ecommerce/shared';
 import { firstValueFrom } from 'rxjs';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('users')
+@ApiBearerAuth('JWT-auth')
 @Controller('users')
 export class UsersController {
     constructor(@Inject('USER_SERVICE') private readonly userService: ClientProxy) {}
 
+    @Public()
     @Post()
     @ApiOperation({
         summary: 'Criar novo usuário',

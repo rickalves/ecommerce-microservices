@@ -246,7 +246,7 @@ ecommerce-microservices/
 - [x] Dockerizar os serviços
 - [x] Adicionar testes unitários e E2E
 - [x] Implementar CI/CD
-- [] Adicionar banco de dados (PostgreSQL/MongoDB)
+- [x] Adicionar banco de dados (PostgreSQL/MongoDB)
 - [ ] Implementar autenticação JWT
 - [ ] Implementar circuit breaker
 - [ ] Adicionar logging e monitoring

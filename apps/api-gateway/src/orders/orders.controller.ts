@@ -10,11 +10,20 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiParam,
+    ApiBody,
+    ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CreateOrderDto, OrderResponseDto } from '@ecommerce/shared';
 import { firstValueFrom } from 'rxjs';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('orders')
+@ApiBearerAuth('JWT-auth')
 @Controller('orders')
 export class OrdersController {
     constructor(@Inject('ORDER_SERVICE') private readonly orderService: ClientProxy) {}
@@ -22,7 +31,7 @@ export class OrdersController {
     @Post()
     @ApiOperation({
         summary: 'Criar novo pedido',
-        description: 'Cria um novo pedido para um usuário com lista de itens',
+        description: 'Cria um novo pedido para o usuário autenticado com lista de itens',
     })
     @ApiBody({ type: CreateOrderDto })
     @ApiResponse({
@@ -32,18 +41,23 @@ export class OrdersController {
     })
     @ApiResponse({
         status: 400,
-        description: 'Dados inválidos ou usuário não existe',
+        description: 'Dados inválidos',
         schema: {
             example: {
                 statusCode: 400,
-                message: 'User not found or invalid order data',
+                message: 'Invalid order data',
             },
         },
     })
-    async createOrder(@Body() createOrderDto: CreateOrderDto) {
+    async createOrder(
+        @Body() createOrderDto: CreateOrderDto,
+        @CurrentUser('userId') userId: string
+    ) {
         try {
+            // Override userId from token (don't trust client input)
+            const orderPayload = { ...createOrderDto, userId };
             return await firstValueFrom(
-                this.orderService.send({ cmd: 'create_order' }, createOrderDto)
+                this.orderService.send({ cmd: 'create_order' }, orderPayload)
             );
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

@@ -1,4 +1,5 @@
 import { IUser } from '@ecommerce/shared';
+import { PasswordService } from '../services/password.service';
 
 export class User implements IUser {
     constructor(
@@ -18,6 +19,13 @@ export class User implements IUser {
     updateEmail(email: string): void {
         this.email = email;
         this.updatedAt = new Date();
+    }
+
+    async validatePassword(
+        plainPassword: string,
+        passwordService: PasswordService
+    ): Promise<boolean> {
+        return passwordService.compare(plainPassword, this.password);
     }
 
     static create(name: string, email: string, password: string): User {
