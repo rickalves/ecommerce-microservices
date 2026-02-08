@@ -11,12 +11,13 @@
         "format": "prettier --write ./src"
     },
     "dependencies": {
-        "class-validator": "^0.14.1",
-        "class-transformer": "^0.5.1"
+        "@nestjs/swagger": "^11.2.6",
+        "class-transformer": "^0.5.1",
+        "class-validator": "^0.14.1"
     },
     "devDependencies": {
-        "typescript": "^5.3.3",
+        "@ecommerce/typescript-config": "workspace:*",
         "@types/node": "^20.11.0",
-        "@ecommerce/typescript-config": "workspace:*"
+        "typescript": "^5.3.3"
     }
 }

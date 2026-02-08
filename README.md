@@ -244,9 +244,9 @@ ecommerce-microservices/
 ## 📝 Próximos Passos
 
 - [x] Dockerizar os serviços
-- [ ] Adicionar testes unitários e E2E
-- [ ] Implementar CI/CD
-- [ ] Adicionar banco de dados (PostgreSQL/MongoDB)
+- [x] Adicionar testes unitários e E2E
+- [x] Implementar CI/CD
+- [] Adicionar banco de dados (PostgreSQL/MongoDB)
 - [ ] Implementar autenticação JWT
 - [ ] Implementar circuit breaker
 - [ ] Adicionar logging e monitoring

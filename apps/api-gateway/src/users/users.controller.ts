@@ -9,14 +9,42 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { CreateUserDto } from '@ecommerce/shared';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiParam,
+    ApiBody,
+} from '@nestjs/swagger';
+import { CreateUserDto, UserResponseDto } from '@ecommerce/shared';
 import { firstValueFrom } from 'rxjs';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
     constructor(@Inject('USER_SERVICE') private readonly userService: ClientProxy) {}
 
     @Post()
+    @ApiOperation({
+        summary: 'Criar novo usuário',
+        description: 'Cria um novo usuário no sistema com nome, email e senha',
+    })
+    @ApiBody({ type: CreateUserDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Usuário criado com sucesso',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Dados inválidos ou email já existe',
+        schema: {
+            example: {
+                statusCode: 400,
+                message: 'Email already exists',
+            },
+        },
+    })
     async createUser(@Body() createUserDto: CreateUserDto) {
         try {
             return await firstValueFrom(
@@ -29,6 +57,30 @@ export class UsersController {
     }
 
     @Get(':id')
+    @ApiOperation({
+        summary: 'Buscar usuário por ID',
+        description: 'Retorna os dados de um usuário específico pelo seu ID',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'ID único do usuário',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Usuário encontrado',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Usuário não encontrado',
+        schema: {
+            example: {
+                statusCode: 404,
+                message: 'User not found',
+            },
+        },
+    })
     async getUser(@Param('id') id: string) {
         try {
             return await firstValueFrom(this.userService.send({ cmd: 'get_user' }, id));
@@ -39,6 +91,19 @@ export class UsersController {
     }
 
     @Get()
+    @ApiOperation({
+        summary: 'Listar todos os usuários',
+        description: 'Retorna uma lista com todos os usuários cadastrados no sistema',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Lista de usuários retornada com sucesso',
+        type: [UserResponseDto],
+    })
+    @ApiResponse({
+        status: 500,
+        description: 'Erro interno ao buscar usuários',
+    })
     async getAllUsers() {
         try {
             return await firstValueFrom(this.userService.send({ cmd: 'get_all_users' }, {}));
