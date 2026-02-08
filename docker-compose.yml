@@ -23,10 +23,17 @@ services:
         container_name: user-service
         ports:
             - '3001:3001'
+        depends_on:
+            - postgres-users
         environment:
             - NODE_ENV=development
             - HOST=0.0.0.0
             - PORT=3001
+            - DB_HOST=postgres-users
+            - DB_PORT=5432
+            - DB_USERNAME=user_service
+            - DB_PASSWORD=user_service_pass
+            - DB_DATABASE=users_db
 
     order-service:
         build:
@@ -35,7 +42,52 @@ services:
         container_name: order-service
         ports:
             - '3002:3002'
+        depends_on:
+            - postgres-orders
         environment:
             - NODE_ENV=development
             - HOST=0.0.0.0
             - PORT=3002
+            - DB_HOST=postgres-orders
+            - DB_PORT=5432
+            - DB_USERNAME=order_service
+            - DB_PASSWORD=order_service_pass
+            - DB_DATABASE=orders_db
+
+    postgres-users:
+        image: postgres:16-alpine
+        container_name: postgres-users
+        ports:
+            - '5432:5432'
+        environment:
+            - POSTGRES_USER=user_service
+            - POSTGRES_PASSWORD=user_service_pass
+            - POSTGRES_DB=users_db
+        volumes:
+            - postgres_users_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U user_service']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    postgres-orders:
+        image: postgres:16-alpine
+        container_name: postgres-orders
+        ports:
+            - '5433:5432'
+        environment:
+            - POSTGRES_USER=order_service
+            - POSTGRES_PASSWORD=order_service_pass
+            - POSTGRES_DB=orders_db
+        volumes:
+            - postgres_orders_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U order_service']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    postgres_users_data:
+    postgres_orders_data:

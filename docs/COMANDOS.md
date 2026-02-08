@@ -305,16 +305,134 @@ rm -rf node_modules
 pnpm install
 ```
 
-## 8️⃣ Próximos Passos
+## 8️⃣ Banco de Dados PostgreSQL
 
-- Adicionar banco de dados PostgreSQL
+### Iniciar bancos de dados
+
+Os serviços agora usam PostgreSQL para persistência de dados. Cada serviço tem sua própria instância de banco de dados:
+
+- **postgres-users** (porta 5432): banco de dados do User Service
+- **postgres-orders** (porta 5433): banco de dados do Order Service
+
+```bash
+# Iniciar apenas os bancos de dados
+docker-compose up -d postgres-users postgres-orders
+
+# Verificar status dos containers
+docker ps --filter "name=postgres"
+```
+
+### Executar migrações
+
+As migrações são necessárias para criar as tabelas no banco de dados:
+
+```bash
+# Executar migrações do User Service
+cd apps/user-service
+pnpm migration:run
+cd ../..
+
+# Executar migrações do Order Service
+cd apps/order-service
+pnpm migration:run
+cd ../..
+```
+
+### Gerar novas migrações
+
+Quando você modificar as entidades (adicionar campos, etc.), gere uma nova migração:
+
+```bash
+# User Service
+cd apps/user-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+
+# Order Service
+cd apps/order-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+```
+
+**Nota:** As migrações são geradas em `src/infrastructure/database/migrations/`. Toda a implementação do TypeORM/PostgreSQL está isolada em `infrastructure/database/` para respeitar a arquitetura DDD.
+
+### Reverter migrações
+
+```bash
+# User Service
+cd apps/user-service
+pnpm migration:revert
+cd ../..
+
+# Order Service
+cd apps/order-service
+pnpm migration:revert
+cd ../..
+```
+
+### Conectar ao banco de dados
+
+```bash
+# User Service Database
+docker exec -it postgres-users psql -U user_service -d users_db
+
+# Order Service Database
+docker exec -it postgres-orders psql -U order_service -d orders_db
+```
+
+### Comandos úteis do PostgreSQL
+
+Dentro do psql:
+
+```sql
+-- Listar tabelas
+\dt
+
+-- Ver estrutura de uma tabela
+\d users
+\d orders
+
+-- Consultar dados
+SELECT * FROM users;
+SELECT * FROM orders;
+
+-- Sair do psql
+\q
+```
+
+### Configuração de ambiente
+
+Os serviços usam variáveis de ambiente para conexão com o banco:
+
+**User Service (.env):**
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=user_service
+DB_PASSWORD=user_service_pass
+DB_DATABASE=users_db
+```
+
+**Order Service (.env):**
+
+```env
+DB_HOST=localhost
+DB_PORT=5433
+DB_USERNAME=order_service
+DB_PASSWORD=order_service_pass
+DB_DATABASE=orders_db
+```
+
+## 9️⃣ Próximos Passos
+
+- ✅ ~~Adicionar banco de dados PostgreSQL~~ (Implementado!)
 - Implementar autenticação JWT
 - Adicionar testes automatizados
-- Dockerizar os serviços
 - Implementar event-driven architecture
 - Adicionar API documentation (Swagger)
 
-## 9️⃣ Executar com Docker
+## 🔟 Executar com Docker
 
 ### Pré-requisitos
 

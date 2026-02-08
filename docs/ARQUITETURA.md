@@ -44,8 +44,16 @@
     │         │          │          │         │          │
     │ ┌───────▼────────┐ │          │ ┌───────▼────────┐ │
     │ │ INFRASTRUCTURE │ │          │ │ INFRASTRUCTURE │ │
-    │ │   InMemory DB  │ │          │ │   InMemory DB  │ │
-    │ └────────────────┘ │          │ └────────────────┘ │
+    │ │ TypeORM Repo   │ │          │ │ TypeORM Repo   │ │
+    │ └───────┬────────┘ │          │ └───────┬────────┘ │
+    └─────────┼──────────┘          └─────────┼──────────┘
+              │                               │
+              │ PostgreSQL Driver             │ PostgreSQL Driver
+              │                               │
+    ┌─────────▼──────────┐          ┌─────────▼──────────┐
+    │  POSTGRES-USERS    │          │  POSTGRES-ORDERS   │
+    │   (Porta 5432)     │          │   (Porta 5433)     │
+    │    users_db        │          │    orders_db       │
     └────────────────────┘          └────────────────────┘
 ```
 
@@ -83,8 +91,10 @@ Responsabilidade: Regras de negócio puras
 
 ```
 Responsabilidade: Implementações técnicas
-- Repository Implementations
-- Banco de dados (InMemory)
+- Repository Implementations (TypeORM)
+- Banco de dados PostgreSQL
+- Entities TypeORM (mapeamento ORM)
+- Migrações do banco de dados
 - Serviços externos
 - Configurações
 ```
@@ -99,8 +109,8 @@ Responsabilidade: Implementações técnicas
 3. Users Controller → USER_SERVICE.send('create_user')
 4. User Service → UserController (TCP)
 5. UserController → CreateUserUseCase
-6. CreateUserUseCase → UserRepository
-7. UserRepository → InMemory DB
+6. CreateUserUseCase → TypeOrmUserRepository
+7. TypeOrmUserRepository → PostgreSQL (users_db)
 8. Resposta volta pela cadeia inversa
 ```
 
@@ -114,7 +124,7 @@ Responsabilidade: Implementações técnicas
 5. OrderController → CreateOrderUseCase
 6. CreateOrderUseCase → Order.create() (Entity)
 7. Order Entity → Calcula totalAmount
-8. OrderRepository → Salva no InMemory DB
+8. TypeOrmOrderRepository → PostgreSQL (orders_db)
 9. Resposta volta pela cadeia inversa
 ```
 
@@ -159,13 +169,15 @@ monorepo/
 ## 🔌 Portas e Protocolos
 
 ```
-┌──────────────┬──────┬──────────┬─────────────────┐
-│   Serviço    │ Porta│ Protocolo│   Descrição     │
-├──────────────┼──────┼──────────┼─────────────────┤
-│ API Gateway  │ 3000 │   HTTP   │ REST API        │
-│ User Service │ 3001 │   TCP    │ Microserviço    │
-│ Order Service│ 3002 │   TCP    │ Microserviço    │
-└──────────────┴──────┴──────────┴─────────────────┘
+┌────────────────┬──────┬────────────┬─────────────────────┐
+│   Serviço      │ Porta│ Protocolo  │   Descrição         │
+├────────────────┼──────┼────────────┼─────────────────────┤
+│ API Gateway    │ 3000 │   HTTP     │ REST API            │
+│ User Service   │ 3001 │   TCP      │ Microserviço        │
+│ Order Service  │ 3002 │   TCP      │ Microserviço        │
+│ Postgres Users │ 5432 │ PostgreSQL │ DB do User Service  │
+│ Postgres Orders│ 5433 │ PostgreSQL │ DB do Order Service │
+└────────────────┴──────┴────────────┴─────────────────────┘
 ```
 
 ## 🗂️ Entidades e Relacionamentos

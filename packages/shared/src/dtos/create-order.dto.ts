@@ -21,7 +21,7 @@ export class OrderItemDto {
 
     @ApiProperty({
         description: 'Preço unitário do produto',
-        example: 99.90,
+        example: 99.9,
         minimum: 0,
     })
     @IsNumber()
@@ -45,12 +45,12 @@ export class CreateOrderDto {
             {
                 productId: 'produto-123',
                 quantity: 2,
-                price: 99.90,
+                price: 99.9,
             },
             {
                 productId: 'produto-456',
                 quantity: 1,
-                price: 149.90,
+                price: 149.9,
             },
         ],
     })

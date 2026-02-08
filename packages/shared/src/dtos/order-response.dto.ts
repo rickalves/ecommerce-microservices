@@ -17,7 +17,7 @@ export class OrderItemResponseDto {
 
     @ApiProperty({
         description: 'Preço unitário do produto',
-        example: 99.90,
+        example: 99.9,
         minimum: 0,
     })
     price: number;
@@ -43,12 +43,12 @@ export class OrderResponseDto {
             {
                 productId: 'produto-123',
                 quantity: 2,
-                price: 99.90,
+                price: 99.9,
             },
             {
                 productId: 'produto-456',
                 quantity: 1,
-                price: 149.90,
+                price: 149.9,
             },
         ],
     })
@@ -56,7 +56,7 @@ export class OrderResponseDto {
 
     @ApiProperty({
         description: 'Valor total do pedido',
-        example: 349.70,
+        example: 349.7,
         minimum: 0,
     })
     totalAmount: number;

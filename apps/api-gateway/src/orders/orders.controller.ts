@@ -10,13 +10,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import {
-    ApiTags,
-    ApiOperation,
-    ApiResponse,
-    ApiParam,
-    ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { CreateOrderDto, OrderResponseDto } from '@ecommerce/shared';
 import { firstValueFrom } from 'rxjs';
 
