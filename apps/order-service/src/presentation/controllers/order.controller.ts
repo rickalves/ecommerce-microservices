@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Payload, EventPattern } from '@nestjs/microservices';
 import { CreateOrderDto } from '@ecommerce/shared';
 
 import { CreateOrderUseCase } from '../../application/use-cases/create-order.use-case';
@@ -14,42 +14,42 @@ export class OrderController {
         private readonly updateOrderStatusUseCase: UpdateOrderStatusUseCase
     ) {}
 
-    @MessagePattern({ cmd: 'create_order' })
-    async createOrder(@Payload() createOrderDto: CreateOrderDto) {
+    @EventPattern('order.created')
+    async handleOrderCreated(@Payload() createOrderDto: CreateOrderDto) {
+        // handle fire-and-forget order creation events
         return this.createOrderUseCase.execute(createOrderDto);
     }
-
-    @MessagePattern({ cmd: 'get_order' })
+    @EventPattern('order.get')
     async getOrder(@Payload() orderId: string) {
         return this.getOrderUseCase.execute(orderId);
     }
 
-    @MessagePattern({ cmd: 'get_orders_by_user' })
+    @EventPattern('order.get_by_user')
     async getOrdersByUser(@Payload() userId: string) {
         return this.getOrderUseCase.getOrdersByUser(userId);
     }
 
-    @MessagePattern({ cmd: 'get_all_orders' })
+    @EventPattern('order.get_all')
     async getAllOrders() {
         return this.getOrderUseCase.getAllOrders();
     }
 
-    @MessagePattern({ cmd: 'confirm_order' })
+    @EventPattern('order.confirm')
     async confirmOrder(@Payload() orderId: string) {
         return this.updateOrderStatusUseCase.confirmOrder(orderId);
     }
 
-    @MessagePattern({ cmd: 'ship_order' })
+    @EventPattern('order.ship')
     async shipOrder(@Payload() orderId: string) {
         return this.updateOrderStatusUseCase.shipOrder(orderId);
     }
 
-    @MessagePattern({ cmd: 'deliver_order' })
+    @EventPattern('order.deliver')
     async deliverOrder(@Payload() orderId: string) {
         return this.updateOrderStatusUseCase.deliverOrder(orderId);
     }
 
-    @MessagePattern({ cmd: 'cancel_order' })
+    @EventPattern('order.cancel')
     async cancelOrder(@Payload() orderId: string) {
         return this.updateOrderStatusUseCase.cancelOrder(orderId);
     }

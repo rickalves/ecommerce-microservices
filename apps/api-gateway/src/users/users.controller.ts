@@ -18,7 +18,6 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CreateUserDto, UserResponseDto } from '@ecommerce/shared';
-import { firstValueFrom } from 'rxjs';
 import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('users')
@@ -51,9 +50,8 @@ export class UsersController {
     })
     async createUser(@Body() createUserDto: CreateUserDto) {
         try {
-            return await firstValueFrom(
-                this.userService.send({ cmd: 'create_user' }, createUserDto)
-            );
+            this.userService.emit('user.create', createUserDto);
+            return { status: 'accepted', message: 'User creation request accepted' };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(message || 'Failed to create user', HttpStatus.BAD_REQUEST);
@@ -87,7 +85,8 @@ export class UsersController {
     })
     async getUser(@Param('id') id: string) {
         try {
-            return await firstValueFrom(this.userService.send({ cmd: 'get_user' }, id));
+            this.userService.emit('user.get', id);
+            return { status: 'accepted', message: 'User fetch request accepted' };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(message || 'User not found', HttpStatus.NOT_FOUND);
@@ -110,7 +109,8 @@ export class UsersController {
     })
     async getAllUsers() {
         try {
-            return await firstValueFrom(this.userService.send({ cmd: 'get_all_users' }, {}));
+            this.userService.emit('user.get_all', {});
+            return { status: 'accepted', message: 'Get all users request accepted' };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(
