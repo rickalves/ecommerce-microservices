@@ -1,7 +1,13 @@
 {
     "extends": "@ecommerce/typescript-config/nestjs.json",
     "compilerOptions": {
-        "baseUrl": "./",
-        "outDir": "./dist"
-    }
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "baseUrl": "./src",
+        "paths": {
+            "@/*": ["*"]
+        }
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules", "dist"]
 }

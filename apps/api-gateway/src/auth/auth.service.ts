@@ -64,7 +64,10 @@ export class AuthService {
     async register(createUserDto: CreateUserDto): Promise<AuthResponseDto> {
         // Create user via user-service
         const user = await firstValueFrom(
-            this.userService.send<UserWithPassword, CreateUserDto>({ cmd: 'create_user' }, createUserDto)
+            this.userService.send<UserWithPassword, CreateUserDto>(
+                { cmd: 'create_user' },
+                createUserDto
+            )
         );
 
         // Generate tokens with different payloads
