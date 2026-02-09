@@ -1,8 +1,42 @@
-node_modules
-dist
-.turbo
-.env*.local
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+.turbo/
+coverage/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Environment files (ignore all .env variants and local overrides)
+# Keep an example file tracked if present
+.env
+.env.*
+.env.*.local
+!.env.example
+
+# Logs
 *.log
-coverage
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editors/IDE
+.vscode/
+.idea/
+
+# Sensitive keys/certificates and credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+secrets*
+credentials.json
+
+# Temporary files
 tmpclaude-*
