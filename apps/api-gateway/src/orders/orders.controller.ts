@@ -95,8 +95,11 @@ export class OrdersController {
     })
     async getOrder(@Param('id') id: string) {
         try {
-            this.orderService.emit('order.get', id);
-            return { status: 'accepted', message: 'Order fetch request accepted' };
+            const order = await firstValueFrom(this.orderService.send<OrderResponseDto, string>('order.get', id));
+            if (!order) {
+                throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+            }
+            return order;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(message || 'Order not found', HttpStatus.NOT_FOUND);
@@ -124,8 +127,8 @@ export class OrdersController {
     })
     async getOrdersByUser(@Param('userId') userId: string) {
         try {
-            this.orderService.emit('order.get_by_user', userId);
-            return { status: 'accepted', message: 'Get orders by user request accepted' };
+            const orders = await firstValueFrom(this.orderService.send<OrderResponseDto[], string>('order.get_by_user', userId));
+            return orders;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(
@@ -151,8 +154,8 @@ export class OrdersController {
     })
     async getAllOrders() {
         try {
-            this.orderService.emit('order.get_all', {});
-            return { status: 'accepted', message: 'Get all orders request accepted' };
+            const orders = await firstValueFrom(this.orderService.send<OrderResponseDto[], any>('order.get_all', {}));
+            return orders;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(

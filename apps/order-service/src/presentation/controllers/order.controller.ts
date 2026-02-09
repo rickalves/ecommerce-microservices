@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { Payload, EventPattern } from '@nestjs/microservices';
+import { Payload, EventPattern, MessagePattern } from '@nestjs/microservices';
 import { CreateOrderDto } from '@ecommerce/shared';
 
 import { CreateOrderUseCase } from '../../application/use-cases/create-order.use-case';
@@ -24,13 +24,28 @@ export class OrderController {
         return this.getOrderUseCase.execute(orderId);
     }
 
+    @MessagePattern('order.get')
+    async getOrderCommand(@Payload() orderId: string) {
+        return this.getOrderUseCase.execute(orderId);
+    }
+
     @EventPattern('order.get_by_user')
     async getOrdersByUser(@Payload() userId: string) {
         return this.getOrderUseCase.getOrdersByUser(userId);
     }
 
+    @MessagePattern('order.get_by_user')
+    async getOrdersByUserCommand(@Payload() userId: string) {
+        return this.getOrderUseCase.getOrdersByUser(userId);
+    }
+
     @EventPattern('order.get_all')
     async getAllOrders() {
+        return this.getOrderUseCase.getAllOrders();
+    }
+
+    @MessagePattern('order.get_all')
+    async getAllOrdersCommand() {
         return this.getOrderUseCase.getAllOrders();
     }
 

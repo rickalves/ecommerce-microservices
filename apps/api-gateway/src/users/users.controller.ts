@@ -9,6 +9,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import {
     ApiTags,
     ApiOperation,
@@ -50,8 +51,8 @@ export class UsersController {
     })
     async createUser(@Body() createUserDto: CreateUserDto) {
         try {
-            this.userService.emit('user.create', createUserDto);
-            return { status: 'accepted', message: 'User creation request accepted' };
+            const created = await firstValueFrom(this.userService.send({ cmd: 'create_user' }, createUserDto));
+            return created;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(message || 'Failed to create user', HttpStatus.BAD_REQUEST);
@@ -85,8 +86,11 @@ export class UsersController {
     })
     async getUser(@Param('id') id: string) {
         try {
-            this.userService.emit('user.get', id);
-            return { status: 'accepted', message: 'User fetch request accepted' };
+            const user = await firstValueFrom(this.userService.send({ cmd: 'get_user' }, id));
+            if (!user) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+            return user;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(message || 'User not found', HttpStatus.NOT_FOUND);
@@ -109,8 +113,8 @@ export class UsersController {
     })
     async getAllUsers() {
         try {
-            this.userService.emit('user.get_all', {});
-            return { status: 'accepted', message: 'Get all users request accepted' };
+            const users = await firstValueFrom(this.userService.send({ cmd: 'get_all_users' }, {}));
+            return users;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new HttpException(

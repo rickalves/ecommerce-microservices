@@ -17,11 +17,10 @@ import { jwtConfig } from '../config/jwt.config';
         ClientsModule.register([
             {
                 name: 'USER_SERVICE',
-                transport: Transport.RMQ,
+                transport: Transport.TCP,
                 options: {
-                    urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: 'user_queue',
-                    queueOptions: { durable: true },
+                    host: process.env.USER_SERVICE_HOST || 'user-service',
+                    port: Number(process.env.USER_SERVICE_PORT) || 3001,
                 },
             },
         ]),

@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { Payload, EventPattern, MessagePattern } from '@nestjs/microservices';
+import { Payload, MessagePattern } from '@nestjs/microservices';
 import { CreateUserDto, LoginDto } from '@ecommerce/shared';
 
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
@@ -14,38 +14,23 @@ export class UserController {
         private readonly validateUserUseCase: ValidateUserUseCase
     ) {}
 
-    @EventPattern('user.create')
+    @MessagePattern({ cmd: 'create_user' })
     async createUser(@Payload() createUserDto: CreateUserDto) {
         return this.createUserUseCase.execute(createUserDto);
     }
 
-    @MessagePattern({ cmd: 'create_user' })
-    async createUserCommand(@Payload() createUserDto: CreateUserDto) {
-        return this.createUserUseCase.execute(createUserDto);
-    }
-
-    @EventPattern('user.get')
+    @MessagePattern({ cmd: 'get_user' })
     async getUser(@Payload() userId: string) {
         return this.getUserUseCase.execute(userId);
     }
 
-    @MessagePattern({ cmd: 'get_user' })
-    async getUserCommand(@Payload() userId: string) {
-        return this.getUserUseCase.execute(userId);
-    }
-
-    @EventPattern('user.get_all')
+    @MessagePattern({ cmd: 'get_all_users' })
     async getAllUsers() {
         return this.getUserUseCase.getAllUsers();
     }
 
-    @EventPattern('user.validate')
-    async validateUser(@Payload() loginDto: LoginDto) {
-        return this.validateUserUseCase.execute(loginDto.email, loginDto.password);
-    }
-
     @MessagePattern({ cmd: 'validate_user' })
-    async validateUserCommand(@Payload() loginDto: LoginDto) {
+    async validateUser(@Payload() loginDto: LoginDto) {
         return this.validateUserUseCase.execute(loginDto.email, loginDto.password);
     }
 }

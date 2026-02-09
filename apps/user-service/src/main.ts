@@ -5,16 +5,15 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
     const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
-        transport: Transport.RMQ,
+        transport: Transport.TCP,
         options: {
-            urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'user_queue',
-            queueOptions: { durable: true },
+            host: process.env.USER_SERVICE_HOST || '0.0.0.0',
+            port: Number(process.env.USER_SERVICE_PORT) || 3001,
         },
     });
 
     await app.listen();
-    console.log('User Service is listening on port 3001');
+    console.log('User Service is listening on TCP port', process.env.USER_SERVICE_PORT || 3001);
 }
 
 bootstrap();
