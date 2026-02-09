@@ -16,15 +16,16 @@
         "test": "turbo run test"
     },
     "devDependencies": {
-        "turbo": "^2.8.0",
-        "eslint": "^9.39.2",
-        "@typescript-eslint/parser": "^8.54.0",
-        "@typescript-eslint/eslint-plugin": "^8.54.0",
         "@ecommerce/typescript-config": "workspace:*",
-        "prettier": "^3.8.1",
+        "@types/ms": "^2.1.0",
+        "@typescript-eslint/eslint-plugin": "^8.54.0",
+        "@typescript-eslint/parser": "^8.54.0",
+        "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-import": "^2.27.5",
-        "eslint-plugin-prettier": "^5.5.5"
+        "eslint-plugin-prettier": "^5.5.5",
+        "prettier": "^3.8.1",
+        "turbo": "^2.8.0"
     },
     "engines": {
         "node": ">=18.0.0",

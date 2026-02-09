@@ -10,6 +10,9 @@ import {
     CreateUserDto,
 } from '@ecommerce/shared';
 import { jwtConfig } from '../config/jwt.config';
+import { StringValue } from 'ms';
+
+type UserWithPassword = UserResponseDto & { password?: string };
 
 @Injectable()
 export class AuthService {
@@ -21,22 +24,32 @@ export class AuthService {
     async login(loginDto: LoginDto): Promise<AuthResponseDto> {
         // Validate user credentials via user-service
         const user = await firstValueFrom(
-            this.userService.send({ cmd: 'validate_user' }, loginDto)
+            this.userService.send<UserWithPassword, LoginDto>({ cmd: 'validate_user' }, loginDto)
         );
 
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        // Generate tokens
-        const payload: IJwtPayload = {
+        // Generate tokens with different payloads
+        const accessPayload: IJwtPayload = {
             sub: user.id,
             email: user.email,
         };
 
-        const accessToken = this.jwtService.sign(payload);
+        const refreshPayload = {
+            sub: user.id,
+            type: 'refresh',
+        };
 
-        const refreshToken = this.jwtService.sign(payload);
+        const accessToken = await this.jwtService.signAsync(accessPayload, {
+            expiresIn: jwtConfig.accessTokenExpiration as StringValue,
+        });
+
+        const refreshToken = await this.jwtService.signAsync(refreshPayload, {
+            secret: jwtConfig.refreshSecret,
+            expiresIn: jwtConfig.refreshTokenExpiration as StringValue,
+        });
 
         // Remove password from response
         const { password, ...userResponse } = user;
@@ -51,18 +64,28 @@ export class AuthService {
     async register(createUserDto: CreateUserDto): Promise<AuthResponseDto> {
         // Create user via user-service
         const user = await firstValueFrom(
-            this.userService.send({ cmd: 'create_user' }, createUserDto)
+            this.userService.send<UserWithPassword, CreateUserDto>({ cmd: 'create_user' }, createUserDto)
         );
 
-        // Generate tokens
-        const payload: IJwtPayload = {
+        // Generate tokens with different payloads
+        const accessPayload: IJwtPayload = {
             sub: user.id,
             email: user.email,
         };
 
-        const accessToken = this.jwtService.sign(payload);
+        const refreshPayload = {
+            sub: user.id,
+            type: 'refresh',
+        };
 
-        const refreshToken = this.jwtService.sign(payload);
+        const accessToken = await this.jwtService.signAsync(accessPayload, {
+            expiresIn: jwtConfig.accessTokenExpiration as StringValue,
+        });
+
+        const refreshToken = await this.jwtService.signAsync(refreshPayload, {
+            secret: jwtConfig.refreshSecret,
+            expiresIn: jwtConfig.refreshTokenExpiration as StringValue,
+        });
 
         // Remove password from response
         const { password, ...userResponse } = user;
@@ -76,28 +99,43 @@ export class AuthService {
 
     async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
         try {
-            const payload = this.jwtService.verify<IJwtPayload>(refreshToken, {
-                secret: jwtConfig.secret,
+            const payload = this.jwtService.verify<IJwtPayload & { type?: string }>(refreshToken, {
+                secret: jwtConfig.refreshSecret,
             });
+
+            // Validate that this is actually a refresh token
+            if (payload.type !== 'refresh') {
+                throw new UnauthorizedException('Invalid token type');
+            }
 
             // Fetch fresh user data
             const user = await firstValueFrom(
-                this.userService.send({ cmd: 'get_user' }, payload.sub)
+                this.userService.send<UserWithPassword, string>({ cmd: 'get_user' }, payload.sub)
             );
 
             if (!user) {
                 throw new UnauthorizedException('User not found');
             }
 
-            // Generate new tokens
-            const newPayload: IJwtPayload = {
+            // Generate new tokens with different payloads
+            const newAccessPayload: IJwtPayload = {
                 sub: user.id,
                 email: user.email,
             };
 
-            const newAccessToken = this.jwtService.sign(newPayload);
+            const newRefreshPayload = {
+                sub: user.id,
+                type: 'refresh',
+            };
 
-            const newRefreshToken = this.jwtService.sign(newPayload);
+            const newAccessToken = await this.jwtService.signAsync(newAccessPayload, {
+                expiresIn: jwtConfig.accessTokenExpiration as StringValue,
+            });
+
+            const newRefreshToken = await this.jwtService.signAsync(newRefreshPayload, {
+                secret: jwtConfig.refreshSecret,
+                expiresIn: jwtConfig.refreshTokenExpiration as StringValue,
+            });
 
             const { password, ...userResponse } = user;
 
