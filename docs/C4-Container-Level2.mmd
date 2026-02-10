@@ -1,0 +1,34 @@
+C4Container
+title Ecommerce Microservices — Container Diagram (Nível 2)
+
+Person(cliente, "Cliente", "Usuário ou serviço externo (Browser / Postman / cURL)")
+
+System_Boundary(ecommerce, "Ecommerce Platform") {
+  Container(apiGateway, "API Gateway", "NestJS", "Ponto único de entrada HTTP. JWT Auth. Swagger. Porta 3000. Empacotado em Docker")
+
+  Container_Boundary(services, "Microservices") {
+    Container(userService, "User Service", "NestJS + TypeORM", "Serviço de usuários — Porta 3001. Conecta ao Postgres Users. Docker")
+    Container(orderService, "Order Service", "NestJS + TypeORM", "Serviço de pedidos — Porta 3002. Publica eventos no RabbitMQ. Docker")
+  }
+
+  Container_Boundary(infra, "Infraestrutura") {
+    Container(postgresUsers, "Postgres Users DB", "PostgreSQL", "Banco de dados users_db — Porta 5432")
+    Container(postgresOrders, "Postgres Orders DB", "PostgreSQL", "Banco de dados orders_db — Porta 5433")
+    Container(rabbitmq, "RabbitMQ", "Message Broker (AMQP)", "Broker de mensagens — Portas 5672 / 15672")
+  }
+}
+
+Rel(cliente, apiGateway, "Usa", "HTTP/REST")
+
+Rel(apiGateway, userService, "Chama endpoints do serviço de usuários (síncrono)", "TCP")
+Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "TCP")
+
+Rel(userService, postgresUsers, "Lê / Escreve", "PostgreSQL")
+Rel(orderService, postgresOrders, "Lê / Escreve", "PostgreSQL")
+
+Rel(orderService, rabbitmq, "Publica eventos de domínio (e.g. OrderCreated)", "AMQP")
+Rel(apiGateway, rabbitmq, "(Opcional) Publica/consome integrações", "AMQP")
+
+%% Observações:
+%% - `API Gateway` expõe APIs HTTP e também pode operar como adaptador AMQP para integrações.
+%% - Cada serviço está empacotado em Docker e se comunica de forma síncrona com o gateway.

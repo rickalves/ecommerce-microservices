@@ -1,0 +1,52 @@
+---
+config:
+  theme: redux-color
+---
+sequenceDiagram
+    %% Participantes (IDs sem espaços para máxima compatibilidade)
+    participant Cliente
+    participant API
+    participant Auth
+    participant UserService
+    participant OrderService
+    participant OrderRepository
+    participant RabbitMQ
+    participant Worker
+
+    %% Fluxo principal: criação de pedido (síncrono até persistência)
+    Cliente->>API: POST orders payload + JWT
+    API->>Auth: validate JWT
+    Auth-->>API: 200 OK
+
+    %% Validação de usuário (opcional)
+    API->>UserService: GET users by id
+    UserService-->>API: 200 User data
+
+    %% Tentativa de criação do pedido
+    API->>OrderService: CreateOrder command with user and items
+    %% Validação e cálculos (sequencial para compatibilidade de renderizadores)
+    OrderService->>OrderService: validate payload and business rules
+    OrderService->>OrderService: calculate totals
+
+    alt payload invalid
+        OrderService-->>API: 400 Bad Request
+        API-->>Cliente: 400 Bad Request
+    else
+        OrderService->>OrderRepository: INSERT order status pending
+        OrderRepository-->>OrderService: order persisted id
+
+        OrderService->>RabbitMQ: publish OrderCreated event with orderId and userId
+        OrderService-->>API: 201 Created orderId
+        API-->>Cliente: 201 Created orderId
+    end
+
+    %% Processamento assíncrono: consumidor/worker reage ao evento
+    RabbitMQ->>Worker: OrderCreated event
+    Worker->>OrderRepository: UPDATE order set status processing_confirmed
+    OrderRepository-->>Worker: updated
+    Worker->>RabbitMQ: publish OrderConfirmed and notifications
+
+%% Observações:
+%% - correlationId deve ser propagado para tracing e logs distribuídos.
+%% - O gateway realiza autenticação e validação leve; lógica de domínio fica no OrderService.
+%% - OrderCreated é publicado de forma at-least-once; consumidores idempotentes devem ser usados.

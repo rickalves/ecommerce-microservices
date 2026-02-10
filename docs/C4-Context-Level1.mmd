@@ -1,0 +1,39 @@
+C4Context
+title Ecommerce Microservices — System Context (Nível 1)
+
+Person(cliente, "Cliente", "Usuário ou serviço externo (Browser / Postman / cURL)")
+
+System_Boundary(ecommerce, "Ecommerce Platform") {
+  System_Boundary(apiLayer, "API Layer") {
+    System(apiGateway, "API Gateway", "Ponto único de entrada HTTP. JWT Auth. Swagger. Porta 3000")
+  }
+
+  System_Boundary(services, "Microservices") {
+    System(userService, "User Service", "Microserviço de usuários — TCP. Porta 3001")
+    System(orderService, "Order Service", "Microserviço de pedidos — RMQ/TCP. Porta 3002")
+  }
+
+  System_Boundary(infra, "Infrastructure") {
+    System_Boundary(datastores, "Databases") {
+      System(postgresUsers, "Postgres Users DB", "PostgreSQL (users_db) — Porta 5432")
+      System(postgresOrders, "Postgres Orders DB", "PostgreSQL (orders_db) — Porta 5433")
+    }
+    System(rabbitmq, "RabbitMQ", "Message broker (AMQP) — Portas 5672 / 15672")
+  }
+}
+
+Rel(cliente, apiGateway, "Usa", "HTTP/REST")
+
+Rel(apiGateway, userService, "Chama endpoints do serviço de usuários (síncrono)", "TCP")
+Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "TCP")
+
+Rel(userService, postgresUsers, "Lê / Escreve", "PostgreSQL")
+Rel(orderService, postgresOrders, "Lê / Escreve", "PostgreSQL")
+
+Rel(orderService, rabbitmq, "Publica eventos de domínio", "AMQP")
+Rel(apiGateway, rabbitmq, "(Opcional) Publica/consome eventos/integrações", "AMQP")
+
+%% Observações:
+%% - Agrupei elementos em boundaries para reduzir entrelaçamento de setas.
+%% - `API Layer` contém o gateway; `Microservices` contém os serviços; `Infrastructure` contém DBs e broker.
+

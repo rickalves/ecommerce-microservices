@@ -1,0 +1,61 @@
+C4Component
+  title Ecommerce Microservices — Component Diagram (Nível 3)
+
+  Person(cliente, "Cliente", "Usuário ou serviço externo (Browser / Postman / cURL)")
+
+  System_Boundary(ecommerce, "Ecommerce Platform") {
+    Container(apiGateway, "API Gateway", "NestJS", "Ponto único de entrada HTTP. JWT Auth. Swagger. Porta 3000")
+    Component(apiHttpController, "API HTTP Controller", "NestJS Controller", "Recebe requisições HTTP e encaminha para os services apropriados")
+    Component(apiAuthGuard, "Auth Guard", "JWT Guard", "Valida tokens JWT e injeta identidade no contexto da requisição")
+    Component(apiProxyService, "Proxy Service", "Service", "Adaptador que faz chamadas TCP/HTTP para microserviços internos")
+
+    Container_Boundary(services, "Microservices") {
+      Container(userService, "User Service", "NestJS + TypeORM", "Serviço de usuários — Porta 3001")
+      Component(userController, "UserController", "NestJS Controller", "Exponibiliza endpoints de usuários (CRUD)")
+      Component(userAppService, "UserAppService", "Service", "Orquestra regras de negócio de usuários")
+      Component(userRepo, "UserRepository", "TypeORM Repository", "Acesso ao banco users_db e mapeamento de entidades")
+      Component(userDto, "User DTOs", "Data Transfer Objects", "Validação e transformação de entrada/saída")
+
+      Container(orderService, "Order Service", "NestJS + TypeORM", "Serviço de pedidos — Porta 3002")
+      Component(orderController, "OrderController", "NestJS Controller", "Exponibiliza endpoints de pedidos")
+      Component(orderAppService, "OrderAppService", "Service", "Aplica regras de negócio e coordena persistência")
+      Component(orderRepo, "OrderRepository", "TypeORM Repository", "Acesso ao banco orders_db")
+      Component(orderAggregate, "Order Aggregate", "Domain Model", "Modela invariantes e comportamentos do agregado Order")
+      Component(orderEventPublisher, "OrderEventPublisher", "AMQP Publisher", "Publica eventos de domínio (OrderCreated) para RabbitMQ")
+      Component(orderEventConsumer, "OrderEventConsumer", "AMQP Consumer", "Consumidor de eventos/integrations via RabbitMQ")
+    }
+
+    Container_Boundary(infra, "Infraestrutura") {
+      Container(postgresUsers, "Postgres Users DB", "PostgreSQL", "Banco de dados users_db — Porta 5432")
+      Container(postgresOrders, "Postgres Orders DB", "PostgreSQL", "Banco de dados orders_db — Porta 5433")
+      Container(rabbitmq, "RabbitMQ", "Message Broker (AMQP)", "Broker de mensagens — Portas 5672 / 15672")
+    }
+  }
+
+  %% Relações entre API Gateway e componentes dos serviços
+  Rel(cliente, apiHttpController, "Usa", "HTTP/REST")
+  Rel(apiHttpController, apiAuthGuard, "Protege requisições com", "JWT")
+  Rel(apiHttpController, apiProxyService, "Encaminha requisições para", "TCP/HTTP")
+
+  Rel(apiProxyService, userController, "Chama endpoints de usuários (síncrono)", "TCP")
+  Rel(apiProxyService, orderController, "Chama endpoints de pedidos (síncrono)", "TCP")
+
+  %% Fluxo interno do User Service
+  Rel(userController, userAppService, "Invoca", "method call")
+  Rel(userAppService, userRepo, "Lê / Escreve", "PostgreSQL / TypeORM")
+
+  %% Fluxo interno do Order Service
+  Rel(orderController, orderAppService, "Invoca", "method call")
+  Rel(orderAppService, orderRepo, "Lê / Escreve", "PostgreSQL / TypeORM")
+  Rel(orderAppService, orderEventPublisher, "Publica evento OrderCreated para", "AMQP")
+  Rel(orderEventConsumer, orderAppService, "Consome eventos/integrações para", "AMQP")
+
+  %% Dependências infra
+  Rel(userRepo, postgresUsers, "Lê / Escreve", "PostgreSQL")
+  Rel(orderRepo, postgresOrders, "Lê / Escreve", "PostgreSQL")
+  Rel(orderEventPublisher, rabbitmq, "Publica eventos em", "AMQP")
+  Rel(orderEventConsumer, rabbitmq, "Consome eventos de", "AMQP")
+
+  %% Observações:
+  %% - `OrderEventPublisher` é um componente de integração responsável por garantir entrega at-least-once no broker.
+  %% - `OrderAggregate` encapsula regras de consistência do domínio; `AppService` coordena com o repositório e publisher.
