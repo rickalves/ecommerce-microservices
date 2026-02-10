@@ -58,7 +58,45 @@ pnpm dev
 
 ## 3️⃣ Testar a API
 
-### Criar um usuário
+### Opção A: Usando Swagger UI (Recomendado 👍)
+
+1. Abra o navegador e acesse: http://localhost:3000/api/docs
+2. Você verá a documentação interativa da API
+3. Teste o fluxo completo:
+
+#### 1. Registrar um usuário
+
+- Expanda **POST** `/auth/register`
+- Clique em **Try it out**
+- Preencha o JSON:
+
+```json
+{
+  "name": "Maria Santos",
+  "email": "maria@email.com",
+  "password": "senha123"
+}
+```
+
+- Clique em **Execute**
+- Copie o `accessToken` da resposta
+
+#### 2. Autenticar no Swagger
+
+- Clique no botão **Authorize** 🔒 no topo da página
+- Cole o `accessToken` no campo
+- Clique em **Authorize**
+- Agora você pode acessar endpoints protegidos!
+
+#### 3. Testar endpoints protegidos
+
+- Experimente **GET** `/users` para listar usuários
+- Experimente **POST** `/orders` para criar pedidos
+- Todos os endpoints agora usarão automaticamente seu token
+
+### Opção B: Usando cURL
+
+### Registrar um usuário
 
 ```bash
 curl -X POST http://localhost:3000/users \
@@ -83,25 +121,28 @@ curl -X POST http://localhost:3000/users \
 }
 ```
 
-### Listar todos os usuários
+### Listar todos os usuários (requer autenticação)
 
 ```bash
-curl http://localhost:3000/users
+curl http://localhost:3000/users \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
-### Buscar usuário específico
+### Buscar usuário específico (requer autenticação)
 
 ```bash
-curl http://localhost:3000/users/{USER_ID}
+curl http://localhost:3000/users/{USER_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
-### Criar um pedido
+### Criar um pedido (requer autenticação)
 
 **Importante:** Use o ID do usuário criado anteriormente!
 
 ```bash
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI" \
   -d '{
     "userId": "COLE_O_ID_DO_USUARIO_AQUI",
     "items": [
@@ -133,52 +174,59 @@ curl -X POST http://localhost:3000/orders \
 }
 ```
 
-### Listar todos os pedidos
+### Listar todos os pedidos (requer autenticação)
 
 ```bash
-curl http://localhost:3000/orders
+curl http://localhost:3000/orders \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
-### Listar pedidos de um usuário específico
+### Listar pedidos de um usuário específico (requer autenticação)
 
 ```bash
-curl http://localhost:3000/orders/user/{USER_ID}
+curl http://localhost:3000/orders/user/{USER_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
-### Buscar pedido específico
+### Buscar pedido específico (requer autenticação)
 
 ```bash
-curl http://localhost:3000/orders/{ORDER_ID}
+curl http://localhost:3000/orders/{ORDER_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
-### Confirmar pedido
+### Confirmar pedido (requer autenticação)
 
 ```bash
-curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/confirm
+curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/confirm \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
 Status muda de PENDING → CONFIRMED
 
-### Enviar pedido
+### Enviar pedido (requer autenticação)
 
 ```bash
-curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/ship
+curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/ship \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
 Status muda de CONFIRMED → SHIPPED
 
-### Entregar pedido
+### Entregar pedido (requer autenticação)
 
 ```bash
-curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/deliver
+curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/deliver \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
 Status muda de SHIPPED → DELIVERED
 
-### Cancelar pedido
+### Cancelar pedido (requer autenticação)
 
 ```bash
-curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/cancel
+curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/cancel \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
 ```
 
 **Nota:** Pedidos entregues não podem ser cancelados!
@@ -247,11 +295,30 @@ curl -s http://localhost:3000/orders/user/$USER_ID | jq
 
 ## 6️⃣ Usando ferramentas visuais
 
+### Swagger UI (Integrado - Recomendado) 🌟
+
+Acesse: http://localhost:3000/api/docs
+
+**Vantagens:**
+- ✅ Já está configurado no projeto
+- ✅ Documentação sempre atualizada
+- ✅ Suporte nativo para autenticação JWT
+- ✅ Testar diretamente no navegador
+- ✅ Ver esquemas de dados e validações
+
+**Como usar:**
+1. Acesse /api/docs
+2. Use `/auth/register` ou `/auth/login`
+3. Copie o `accessToken`
+4. Clique em **Authorize** 🔒
+5. Cole o token
+6. Teste todos os endpoints!
+
 ### Postman / Insomnia
 
-Importe a seguinte collection:
+Se preferir usar ferramentas externas:
 
-**POST** `http://localhost:3000/users`
+**POST** `http://localhost:3000/auth/register`
 
 ```json
 {
@@ -260,6 +327,10 @@ Importe a seguinte collection:
     "password": "senha123"
 }
 ```
+
+**Configurar Auth:**
+- Type: Bearer Token
+- Token: (cole o accessToken da resposta)
 
 **POST** `http://localhost:3000/orders`
 
@@ -380,6 +451,19 @@ docker exec -it postgres-users psql -U user_service -d users_db
 docker exec -it postgres-orders psql -U order_service -d orders_db
 ```
 
+### Acessar RabbitMQ Management UI
+
+Acesse: http://localhost:15672
+
+- **Usuário:** guest
+- **Senha:** guest
+
+**O que você pode fazer:**
+- Ver mensagens em filas
+- Monitorar exchanges
+- Ver conexões ativas
+- Visualizar métricas de performance
+
 ### Comandos úteis do PostgreSQL
 
 Dentro do psql:
@@ -427,10 +511,14 @@ DB_DATABASE=orders_db
 ## 9️⃣ Próximos Passos
 
 - ✅ ~~Adicionar banco de dados PostgreSQL~~ (Implementado!)
-- Implementar autenticação JWT
-- Adicionar testes automatizados
-- Implementar event-driven architecture
-- Adicionar API documentation (Swagger)
+- ✅ ~~Implementar autenticação JWT~~ (Implementado!)
+- ✅ ~~Adicionar Swagger UI~~ (Implementado!)
+- ✅ ~~Configurar RabbitMQ~~ (Implementado!)
+- ⏳ Implementar comunicação por eventos (RabbitMQ)
+- ⏳ Adicionar testes automatizados (unit + E2E)
+- ⏳ Implementar circuit breaker
+- ⏳ Adicionar logging centralizado
+- ⏳ Implementar rate limiting
 
 ## 🔟 Executar com Docker
 

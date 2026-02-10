@@ -4,24 +4,25 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENTE HTTP                             │
-│                    (Browser / Postman / cURL)                    │
+│                         CLIENTE HTTP                            │
+│                    (Browser / Postman / cURL)                   │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
                                │ HTTP REST
                                │
                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        API GATEWAY                               │
-│                      (Porta 3000 - HTTP)                         │
-│                                                                  │
-│  ┌──────────────────┐              ┌──────────────────┐        │
-│  │ Users Controller │              │ Orders Controller│        │
-│  └──────────────────┘              └──────────────────┘        │
-└─────────────┬─────────────────────────────────┬────────────────┘
-              │                                 │
-              │ TCP                             │ TCP
-              │                                 │
+┌───────────────────────────────────────────────────────────────────┐
+│                        API GATEWAY                                │
+│                      (Porta 3000 - HTTP)                          │
+│                                                                   │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐ │
+│  │ Auth Controller  │  │ Users Controller │  │ Orders Controller│ │   
+│  │  + JWT Service   │  └──────────────────┘  └──────────────────┘ │
+│  └──────────────────┘              Swagger UI: /api/docs          │
+└─────────────┬───────────────────────────────┬─────────────────────┘
+              │                               │
+              │ TCP                           │ RMQ
+              │                               │
     ┌─────────▼──────────┐          ┌─────────▼──────────┐
     │   USER SERVICE     │          │   ORDER SERVICE    │
     │  (Porta 3001)      │          │   (Porta 3002)     │
@@ -44,17 +45,27 @@
     │         │          │          │         │          │
     │ ┌───────▼────────┐ │          │ ┌───────▼────────┐ │
     │ │ INFRASTRUCTURE │ │          │ │ INFRASTRUCTURE │ │
-    │ │ TypeORM Repo   │ │          │ │ TypeORM Repo   │ │
+    │ │ TypeORM Repo   │ │          │ │ TypeORM + RMQ  │ │
     │ └───────┬────────┘ │          │ └───────┬────────┘ │
     └─────────┼──────────┘          └─────────┼──────────┘
               │                               │
-              │ PostgreSQL Driver             │ PostgreSQL Driver
+              │ PostgreSQL                    │ PostgreSQL
               │                               │
     ┌─────────▼──────────┐          ┌─────────▼──────────┐
     │  POSTGRES-USERS    │          │  POSTGRES-ORDERS   │
     │   (Porta 5432)     │          │   (Porta 5433)     │
     │    users_db        │          │    orders_db       │
-    └────────────────────┘          └────────────────────┘
+    └────────────────────┘          └──────────┬─────────┘
+                                               │
+                                               │ AMQP
+                                               │ Publica Eventos
+                                               │
+                                    ┌──────────▼──────────┐
+                                    │     RABBITMQ        │
+                                    │ (Porta 5672/15672)  │
+                                    │  Message Broker     │
+                                    │   Order Events      │
+                                    └─────────────────────┘
 ```
 
 ## 🏗️ Estrutura DDD por Camada
@@ -101,6 +112,30 @@ Responsabilidade: Implementações técnicas
 
 ## 🔄 Fluxo de Comunicação
 
+### Autenticar Usuário (JWT)
+
+```
+1. Cliente → POST /auth/register ou /auth/login
+2. API Gateway → AuthController
+3. AuthController → AuthService
+4. AuthService → USER_SERVICE.send('create_user' ou 'validate_user')
+5. User Service → CreateUserUseCase ou ValidateUserUseCase
+6. UseCase → UserRepository → PostgreSQL
+7. AuthService → Gera accessToken e refreshToken (JWT)
+8. Resposta com tokens e dados do usuário
+```
+
+### Acessar Rota Protegida
+
+```
+1. Cliente → GET /users (com Authorization: Bearer <token>)
+2. API Gateway → JwtAuthGuard intercepta
+3. JwtAuthGuard → Valida token JWT
+4. Se válido → JwtStrategy extrai payload
+5. Continua com a requisição normalmente
+6. Se inválido → Retorna 401 Unauthorized
+```
+
 ### Criar Usuário
 
 ```
@@ -125,7 +160,8 @@ Responsabilidade: Implementações técnicas
 6. CreateOrderUseCase → Order.create() (Entity)
 7. Order Entity → Calcula totalAmount
 8. TypeOrmOrderRepository → PostgreSQL (orders_db)
-9. Resposta volta pela cadeia inversa
+9. UseCase → Publica evento no RabbitMQ (opcional)
+10. Resposta volta pela cadeia inversa
 ```
 
 ## 📦 Estrutura de Pacotes
@@ -152,12 +188,35 @@ monorepo/
 - **Use Cases**: Casos de uso da aplicação
 - **Separation of Concerns**: Cada camada tem uma responsabilidade
 
+### Segurança
+
+- **JWT (JSON Web Tokens)**: Autenticação stateless
+- **Access Token**: Token de curta duração para acesso a recursos
+- **Refresh Token**: Token de longa duração para renovar access token
+- **bcrypt**: Hash de senhas para segurança
+- **Guards**: Proteção de rotas no API Gateway
+- **Decorators**: @Public() para rotas públicas, @CurrentUser() para obter usuário
+
 ### Microserviços
 
 - **Independência**: Cada serviço pode ser deployado separadamente
-- **Comunicação TCP**: Protocolo binário eficiente
-- **API Gateway**: Ponto único de entrada
-- **Bounded Contexts**: Cada serviço tem seu contexto delimitado
+- **Comunicação Síncrona (TCP)**: API Gateway ↔ Microserviços para requisições/respostas imediatas
+- **Comunicação Assíncrona (AMQP)**: Order Service → RabbitMQ → Outros serviços para eventos
+- **API Gateway**: Ponto único de entrada + Autenticação centralizada JWT
+- **Bounded Contexts**: Cada serviço tem seu contexto delimitado e base de dados independente
+- **Event-Driven Architecture**: Eventos de domínio publicados no RabbitMQ
+- **Message Broker (RabbitMQ)**: 
+  - Garante entrega de mensagens
+  - Permite múltiplos consumidores
+  - Desacopla serviços produtores e consumidores
+  - Persistência de mensagens para resiliência
+
+### Documentação
+
+- **Swagger/OpenAPI**: Documentação interativa automática
+- **API Docs**: Interface web para testar endpoints
+- **Bearer Auth**: Suporte para autenticação JWT no Swagger
+- **DTOs documentados**: Esquemas de dados detalhados
 
 ### Clean Architecture
 
@@ -169,12 +228,15 @@ monorepo/
 ## 🔌 Portas e Protocolos
 
 ```
-┌────────────────┬──────┬────────────┬─────────────────────┐
+┌────────────────┴────────────┴────────────┴───────────────┐
 │   Serviço      │ Porta│ Protocolo  │   Descrição         │
 ├────────────────┼──────┼────────────┼─────────────────────┤
-│ API Gateway    │ 3000 │   HTTP     │ REST API            │
+│ API Gateway    │ 3000 │   HTTP     │ REST API + JWT      │
+│ Swagger UI     │ 3000 │   HTTP     │ /api/docs           │
 │ User Service   │ 3001 │   TCP      │ Microserviço        │
-│ Order Service  │ 3002 │   TCP      │ Microserviço        │
+│ Order Service  │ 3002 │   RMQ      │ Microserviço        │
+│ RabbitMQ       │ 5672 │   AMQP     │ Message Broker      │
+│ RabbitMQ UI    │15672 │   HTTP     │ Management Console  │
 │ Postgres Users │ 5432 │ PostgreSQL │ DB do User Service  │
 │ Postgres Orders│ 5433 │ PostgreSQL │ DB do Order Service │
 └────────────────┴──────┴────────────┴─────────────────────┘
@@ -206,18 +268,7 @@ monorepo/
 │ - totalAmount   │     │
 │ - status        │     │
 │ - createdAt     │     │
-│ - updatedAt     │     │
-└────────┬────────┘     │
-         │              │
-         │ 1:N          │
-         │              │
-         ▼              │
-┌─────────────────┐     │
-│   ORDER ITEM    │     │
-├─────────────────┤     │
-│ - productId     │     │
-│ - quantity      │     │
-│ - price         │     │
+│ - updatedAt     │     │ 
 └─────────────────┘     │
                         │
 Status Enum:            │
@@ -235,6 +286,12 @@ Status Enum:            │
 - Cada microserviço pode escalar independentemente
 - Load balancing por serviço
 - Horizontal scaling facilitado
+- **RabbitMQ permite múltiplos consumidores** para o mesmo evento
+- **Processamento assíncrono** não bloqueia requisições HTTP
+
+### Manutenibilidade
+
+- Código organizado em camadas
 
 ### Manutenibilidade
 

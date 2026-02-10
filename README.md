@@ -2,13 +2,27 @@
 
 Projeto de microserviços usando NestJS com arquitetura DDD (Domain-Driven Design), gerenciado com Turbo Repo e pnpm.
 
+## 🎯 Funcionalidades Implementadas
+
+- ✅ **Autenticação JWT** (Login, Register, Refresh Token)
+- ✅ **Swagger UI** para documentação interativa da API
+- ✅ **PostgreSQL** com TypeORM e migrações
+- ✅ **RabbitMQ** para mensageria entre serviços
+- ✅ **Docker Compose** para orquestração de containers
+- ✅ **CORS** habilitado
+- ✅ **Validação de dados** com ValidationPipe
+- ✅ **Guards JWT** para proteção de rotas
+
 ## 📋 Arquitetura
 
 ### Serviços
 
-- **API Gateway** (porta 3000) - Ponto de entrada HTTP
-- **User Service** (porta 3001) - Gerenciamento de usuários
-- **Order Service** (porta 3002) - Gerenciamento de pedidos
+- **API Gateway** (porta 3000) - Ponto de entrada HTTP + Autenticação JWT
+- **User Service** (porta 3001) - Gerenciamento de usuários + PostgreSQL
+- **Order Service** (porta 3002) - Gerenciamento de pedidos + PostgreSQL
+- **RabbitMQ** (portas 5672/15672) - Message broker para comunicação assíncrona
+- **PostgreSQL Users** (porta 5432) - Banco de dados de usuários
+- **PostgreSQL Orders** (porta 5433) - Banco de dados de pedidos
 
 ### Estrutura DDD
 
@@ -51,11 +65,12 @@ pnpm install
 ```bash
 cd packages/shared
 pnpm build
+cd ../..
 ```
 
-## ▶️ Executar com Docker
+## ▶️ Executar com Docker (Recomendado)
 
-### Construir e iniciar (com docker-compose)
+### Construir e iniciar todos os serviços
 
 ```bash
 docker-compose up --build
@@ -67,15 +82,31 @@ docker-compose up --build
 docker-compose up -d --build
 ```
 
-### Parar e remover
+### Ver logs
+
+```bash
+docker-compose logs -f
+```
+
+### Parar e remover containers
 
 ```bash
 docker-compose down
 ```
 
-### Observação
+### Parar e remover containers + volumes
 
-- Se os Dockerfiles dependerem de `packages/shared` compilado, execute `pnpm build` em `packages/shared` antes de construir as imagens.
+```bash
+docker-compose down -v
+```
+
+### Serviços disponíveis após iniciar:
+
+- 🌐 API Gateway: http://localhost:3000
+- 📚 Swagger UI: http://localhost:3000/api/docs
+- 🐰 RabbitMQ Management: http://localhost:15672 (guest/guest)
+- 🐘 PostgreSQL Users: localhost:5432
+- 🐘 PostgreSQL Orders: localhost:5433
 
 ## 📦 Scripts Disponíveis
 
@@ -110,9 +141,9 @@ pnpm start
 
 ## 🔌 Endpoints da API
 
-### Users
+### 🔐 Autenticação (Pública)
 
-**POST** `/users`
+**POST** `/auth/register` - Registrar novo usuário
 
 ```json
 {
@@ -122,13 +153,38 @@ pnpm start
 }
 ```
 
-**GET** `/users/:id`
+Resposta: `{ accessToken, refreshToken, user }`
 
-**GET** `/users`
+**POST** `/auth/login` - Login de usuário
 
-### Orders
+```json
+{
+    "email": "joao@email.com",
+    "password": "senha123"
+}
+```
 
-**POST** `/orders`
+Resposta: `{ accessToken, refreshToken, user }`
+
+**POST** `/auth/refresh` - Renovar access token
+
+```json
+{
+    "refreshToken": "seu-refresh-token"
+}
+```
+
+Resposta: `{ accessToken, refreshToken }`
+
+### 👤 Users (Requer autenticação JWT)
+
+**GET** `/users/:id` - Buscar usuário por ID
+
+**GET** `/users` - Listar todos os usuários
+
+### 📦 Orders (Requer autenticação JWT)
+
+**POST** `/orders` - Criar novo pedido
 
 ```json
 {
@@ -143,26 +199,45 @@ pnpm start
 }
 ```
 
-**GET** `/orders/:id`
+**GET** `/orders/:id` - Buscar pedido por ID
 
-**GET** `/orders/user/:userId`
+**GET** `/orders/user/:userId` - Listar pedidos de um usuário
 
-**GET** `/orders`
+**GET** `/orders` - Listar todos os pedidos
 
-**PATCH** `/orders/:id/confirm`
+**PATCH** `/orders/:id/confirm` - Confirmar pedido (PENDING → CONFIRMED)
 
-**PATCH** `/orders/:id/ship`
+**PATCH** `/orders/:id/ship` - Enviar pedido (CONFIRMED → SHIPPED)
 
-**PATCH** `/orders/:id/deliver`
+**PATCH** `/orders/:id/deliver` - Entregar pedido (SHIPPED → DELIVERED)
 
-**PATCH** `/orders/:id/cancel`
+**PATCH** `/orders/:id/cancel` - Cancelar pedido (exceto DELIVERED)
+
+### 📚 Documentação
+
+**Swagger UI:** http://localhost:3000/api/docs
+
+- Documentação interativa de todos os endpoints
+- Testar APIs diretamente pelo navegador
+- Esquemas de dados e validações
+- Suporte para autenticação Bearer Token
 
 ## 🧪 Testando a API
 
-### 1. Criar um usuário
+### Opção 1: Usando Swagger UI (Recomendado)
+
+1. Acesse http://localhost:3000/api/docs
+2. Registre um usuário em `/auth/register`
+3. Copie o `accessToken` da resposta
+4. Clique em **Authorize** no topo da página
+5. Cole o token e teste os endpoints protegidos
+
+### Opção 2: Usando cURL
+
+### 1. Registrar um usuário
 
 ```bash
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Maria Santos",
@@ -171,17 +246,32 @@ curl -X POST http://localhost:3000/users \
   }'
 ```
 
-### 2. Listar usuários
+Resposta inclui `accessToken` e `refreshToken`.
+
+### 2. Fazer login
 
 ```bash
-curl http://localhost:3000/users
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "maria@email.com",
+    "password": "senha123"
+  }'
 ```
 
-### 3. Criar um pedido
+### 3. Listar usuários (com autenticação)
+
+```bash
+curl http://localhost:3000/users \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
+### 4. Criar um pedido (com autenticação)
 
 ```bash
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI" \
   -d '{
     "userId": "COLE_O_ID_DO_USUARIO_AQUI",
     "items": [
@@ -241,13 +331,71 @@ ecommerce-microservices/
 - Execução paralela de tarefas
 - Gerenciamento de monorepo
 
+## �️ Banco de Dados e Migrações
+
+### Executar migrações (PostgreSQL)
+
+```bash
+# User Service
+cd apps/user-service
+pnpm migration:run
+cd ../..
+
+# Order Service
+cd apps/order-service
+pnpm migration:run
+cd ../..
+```
+
+### Gerar nova migração
+
+```bash
+# User Service
+cd apps/user-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+
+# Order Service
+cd apps/order-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+```
+
+### Reverter última migração
+
+```bash
+# User Service
+cd apps/user-service
+pnpm migration:revert
+cd ../..
+
+# Order Service
+cd apps/order-service
+pnpm migration:revert
+cd ../..
+```
+
+### Conectar ao banco via psql
+
+```bash
+# Database Users
+docker exec -it postgres-users psql -U user_service -d users_db
+
+# Database Orders
+docker exec -it postgres-orders psql -U order_service -d orders_db
+```
+
 ## 📝 Próximos Passos
 
 - [x] Dockerizar os serviços
-- [x] Adicionar testes unitários e E2E
-- [x] Implementar CI/CD
-- [x] Adicionar banco de dados (PostgreSQL/MongoDB)
-- [ ] Implementar autenticação JWT
+- [x] Adicionar banco de dados PostgreSQL com TypeORM
+- [x] Implementar autenticação JWT completa
+- [x] Adicionar Swagger UI para documentação
+- [x] Configurar RabbitMQ para mensageria
+- [ ] Implementar testes unitários e E2E
+- [ ] Implementar CI/CD com GitHub Actions
 - [ ] Implementar circuit breaker
-- [ ] Adicionar logging e monitoring
-- [ ] Implementar event-driven communication
+- [ ] Adicionar logging centralizado
+- [ ] Implementar event-driven communication com RabbitMQ
+- [ ] Adicionar rate limiting
+- [ ] Implementar health checks

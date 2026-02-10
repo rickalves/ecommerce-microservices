@@ -1,14 +1,47 @@
 # Exemplos Práticos de Uso
 
+## 🔐 Autenticação
+
+**IMPORTANTE:** Todos os endpoints (exceto /auth/*) agora requerem autenticação JWT!
+
+### Como autenticar:
+
+1. **Registrar ou fazer login** em `/auth/register` ou `/auth/login`
+2. **Copiar o accessToken** da resposta
+3. **Incluir o token** nas requisições:
+   - Header: `Authorization: Bearer SEU_TOKEN_AQUI`
+   - Ou usar Swagger UI e clicar em **Authorize**
+
 ## 🎯 Cenários de Teste Completos
 
 ### Cenário 1: E-commerce Básico
+
+#### 0. Configurar autenticação (NOVO)
+
+```bash
+# Registrar e obter token
+AUTH_RESPONSE=$(curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Admin",
+    "email": "admin@email.com",
+    "password": "admin123"
+  }')
+
+ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.accessToken')
+echo "Access Token: $ACCESS_TOKEN"
+
+# Definir função auxiliar para requisições autenticadas
+auth_curl() {
+  curl "$@" -H "Authorization: Bearer $ACCESS_TOKEN"
+}
+```
 
 #### 1. Criar múltiplos usuários
 
 ```bash
 # Usuário 1
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Ana Silva",
@@ -17,7 +50,7 @@ curl -X POST http://localhost:3000/users \
   }'
 
 # Usuário 2
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Carlos Santos",
@@ -26,7 +59,7 @@ curl -X POST http://localhost:3000/users \
   }'
 
 # Usuário 3
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Beatriz Costa",
@@ -35,18 +68,22 @@ curl -X POST http://localhost:3000/users \
   }'
 ```
 
-#### 2. Listar todos os usuários
+#### 2. Listar todos os usuários (requer token)
 
 ```bash
-curl http://localhost:3000/users | jq
+auth_curl -s http://localhost:3000/users | jq
+# Ou sem a função auxiliar:
+curl -s http://localhost:3000/users \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 ```
 
-#### 3. Criar pedidos para diferentes usuários
+#### 3. Criar pedidos para diferentes usuários (com autenticação)
 
 ```bash
 # Pedido da Ana (Eletrônicos)
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{
     "userId": "ID_DA_ANA",
     "items": [
@@ -71,6 +108,7 @@ curl -X POST http://localhost:3000/orders \
 # Pedido do Carlos (Livros)
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{
     "userId": "ID_DO_CARLOS",
     "items": [
@@ -90,6 +128,7 @@ curl -X POST http://localhost:3000/orders \
 # Pedido da Beatriz (Roupas)
 curl -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{
     "userId": "ID_DA_BEATRIZ",
     "items": [
@@ -112,11 +151,11 @@ curl -X POST http://localhost:3000/orders \
   }'
 ```
 
-### Cenário 2: Fluxo Completo de Pedido
+### Cenário 2: Fluxo Completo de Pedido (com JWT)
 
 ```bash
-# 1. Criar usuário
-USER=$(curl -s -X POST http://localhost:3000/users \
+# 1. Registrar usuário e obter token
+AUTH_RESPONSE=$(curl -s -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "João Pedro",
@@ -124,12 +163,15 @@ USER=$(curl -s -X POST http://localhost:3000/users \
     "password": "joao123"
   }')
 
-USER_ID=$(echo $USER | jq -r '.id')
+USER_ID=$(echo $AUTH_RESPONSE | jq -r '.user.id')
+ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.accessToken')
 echo "Usuário criado: $USER_ID"
+echo "Token: $ACCESS_TOKEN"
 
-# 2. Criar pedido
+# 2. Criar pedido (com autenticação)
 ORDER=$(curl -s -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d "{
     \"userId\": \"$USER_ID\",
     \"items\": [
@@ -156,29 +198,34 @@ echo "Pedido criado: $ORDER_ID"
 echo "Total: R$ $(echo $ORDER | jq -r '.totalAmount')"
 
 # 3. Verificar pedido criado (status PENDING)
-curl -s http://localhost:3000/orders/$ORDER_ID | jq
+curl -s http://localhost:3000/orders/$ORDER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 
 # 4. Confirmar pedido
 echo "
 Confirmando pedido..."
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm | jq
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 
 # 5. Enviar pedido
 echo "
 Enviando pedido..."
 sleep 2
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/ship | jq
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/ship \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 
 # 6. Entregar pedido
 echo "
 Entregando pedido..."
 sleep 2
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver | jq
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 
 # 7. Verificar histórico de pedidos do usuário
 echo "
 Histórico de pedidos do usuário:"
-curl -s http://localhost:3000/orders/user/$USER_ID | jq
+curl -s http://localhost:3000/orders/user/$USER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
 ```
 
 ### Cenário 3: Validação de Regras de Negócio
@@ -189,6 +236,7 @@ curl -s http://localhost:3000/orders/user/$USER_ID | jq
 # 1. Criar pedido
 ORDER=$(curl -s -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{
     "userId": "USER_ID_AQUI",
     "items": [
@@ -203,16 +251,21 @@ ORDER=$(curl -s -X POST http://localhost:3000/orders \
 ORDER_ID=$(echo $ORDER | jq -r '.id')
 
 # 2. Tentar enviar sem confirmar (deve dar erro)
-curl -X PATCH http://localhost:3000/orders/$ORDER_ID/ship
+curl -X PATCH http://localhost:3000/orders/$ORDER_ID/ship \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 # Erro esperado: "Only confirmed orders can be shipped"
 
 # 3. Confirmar e entregar
-curl -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm
-curl -X PATCH http://localhost:3000/orders/$ORDER_ID/ship
-curl -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver
+curl -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl -X PATCH http://localhost:3000/orders/$ORDER_ID/ship \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 
 # 4. Tentar cancelar pedido entregue (deve dar erro)
-curl -X PATCH http://localhost:3000/orders/$ORDER_ID/cancel
+curl -X PATCH http://localhost:3000/orders/$ORDER_ID/cancel \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
 # Erro esperado: "Delivered orders cannot be cancelled"
 ```
 
@@ -220,7 +273,7 @@ curl -X PATCH http://localhost:3000/orders/$ORDER_ID/cancel
 
 ```bash
 # 1. Criar primeiro usuário
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Primeiro User",
@@ -229,7 +282,7 @@ curl -X POST http://localhost:3000/users \
   }'
 
 # 2. Tentar criar com mesmo email (deve dar erro)
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Segundo User",
@@ -239,13 +292,31 @@ curl -X POST http://localhost:3000/users \
 # Erro esperado: "User with this email already exists"
 ```
 
-### Cenário 4: Relatórios e Consultas
+#### Testar acesso sem autenticação (401)
+
+```bash
+# Tentar listar usuários sem token
+curl -X GET http://localhost:3000/users
+# Erro esperado: 401 Unauthorized
+
+# Tentar criar pedido sem token
+curl -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "qualquer-id",
+    "items": []
+  }'
+# Erro esperado: 401 Unauthorized
+```
+
+### Cenário 4: Relatórios e Consultas (com autenticação)
 
 #### Listar todos os pedidos e calcular estatísticas
 
 ```bash
-# Obter todos os pedidos
-ORDERS=$(curl -s http://localhost:3000/orders)
+# Obter todos os pedidos (com token)
+ORDERS=$(curl -s http://localhost:3000/orders \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
 
 # Contar total de pedidos
 echo "Total de pedidos: $(echo $ORDERS | jq 'length')"
@@ -268,7 +339,7 @@ echo "Ticket médio: R$ $(echo $ORDERS | jq '[.[] | .totalAmount] | add / length
 
 ## 🧪 Scripts de Teste Automatizados
 
-### Script completo de testes
+### Script completo de testes (com JWT)
 
 ```bash
 #!/bin/bash
@@ -292,32 +363,36 @@ check_success() {
   fi
 }
 
-# 1. Testar criação de usuário
+# 1. Testar registro de usuário e obter token
 echo "
-1. Criando usuário..."
-USER=$(curl -s -X POST http://localhost:3000/users \
+1. Registrando usuário e obtendo token..."
+AUTH_RESPONSE=$(curl -s -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Teste User",
     "email": "teste@email.com",
     "password": "teste123"
   }')
-check_success "Usuário criado"
+check_success "Usuário registrado"
 
-USER_ID=$(echo $USER | jq -r '.id')
+USER_ID=$(echo $AUTH_RESPONSE | jq -r '.user.id')
+ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.accessToken')
 echo "   ID: $USER_ID"
+echo "   Token obtido: ${ACCESS_TOKEN:0:20}..."
 
-# 2. Testar busca de usuário
+# 2. Testar busca de usuário (com autenticação)
 echo "
 2. Buscando usuário..."
-curl -s http://localhost:3000/users/$USER_ID > /dev/null
+curl -s http://localhost:3000/users/$USER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
 check_success "Usuário encontrado"
 
-# 3. Testar criação de pedido
+# 3. Testar criação de pedido (com autenticação)
 echo "
 3. Criando pedido..."
 ORDER=$(curl -s -X POST http://localhost:3000/orders \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d "{
     \"userId\": \"$USER_ID\",
     \"items\": [
@@ -339,27 +414,42 @@ echo "
 4. Testando workflow do pedido..."
 
 echo "   Confirmando..."
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm > /dev/null
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/confirm \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
 check_success "Pedido confirmado"
 
 echo "   Enviando..."
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/ship > /dev/null
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/ship \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
 check_success "Pedido enviado"
 
 echo "   Entregando..."
-curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver > /dev/null
+curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver \
+  -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
 check_success "Pedido entregue"
 
 # 5. Verificar status final
 echo "
 5. Verificando status final..."
-FINAL_ORDER=$(curl -s http://localhost:3000/orders/$ORDER_ID)
+FINAL_ORDER=$(curl -s http://localhost:3000/orders/$ORDER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
 STATUS=$(echo $FINAL_ORDER | jq -r '.status')
 
 if [ "$STATUS" = "DELIVERED" ]; then
   echo -e "${GREEN}✓ Status correto: $STATUS${NC}"
 else
   echo -e "${RED}✗ Status incorreto: $STATUS${NC}"
+  exit 1
+fi
+
+# 6. Testar acesso sem token (deve falhar com 401)
+echo "
+6. Testando segurança (acesso sem token)..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/users)
+if [ "$HTTP_CODE" = "401" ]; then
+  echo -e "${GREEN}✓ Proteção JWT funcionando (401 Unauthorized)${NC}"
+else
+  echo -e "${RED}✗ Proteção JWT falhou (código: $HTTP_CODE)${NC}"
   exit 1
 fi
 
@@ -379,33 +469,70 @@ chmod +x test-api.sh
 ## 📊 Dados de Exemplo para Popular
 
 ```bash
-# Popular banco com dados de exemplo
-curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name":"Admin","email":"admin@ecommerce.com","password":"admin123"}'
-curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name":"Cliente 1","email":"cliente1@email.com","password":"cliente123"}'
-curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name":"Cliente 2","email":"cliente2@email.com","password":"cliente123"}'
-curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name":"Cliente 3","email":"cliente3@email.com","password":"cliente123"}'
+# Registrar usuários e obter seus dados
+echo "Registrando usuários..."
 
-# Listar usuários e pegar IDs
-curl http://localhost:3000/users | jq '.[] | {id, name, email}'
-```
+# Admin
+curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","email":"admin@ecommerce.com","password":"admin123"}' | jq
 
-## 🐛 Testes de Validação
+# Cliente 1
+curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Cliente 1","email":"cliente1@email.com","password":"cliente123"}' | jq
 
-### Validação de DTOs
-
-```bash
-# Tentar criar usuário sem nome (deve dar erro 400)
-curl -X POST http://localhost:3000/users \
+# Cliente 2
+curl -s -X POST http://localhost:3000/auth/register \
+  -H "Conregistrar usuário sem nome (deve dar erro 400)
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "sem-nome@email.com",
     "password": "senha123"
   }'
 
-# Tentar criar usuário com email inválido
-curl -X POST http://localhost:3000/users \
+# Tentar registrar usuário com email inválido
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
+    "name": "Teste",
+    "email": "email-invalido",
+    "password": "senha123"
+  }'
+
+# Tentar registrar usuário com senha curta
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Teste",
+    "email": "teste@email.com",
+    "password": "123"
+  }'
+
+# Tentar criar pedido com quantidade negativa (com token válido)
+curl -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "userId": "algum-id",
+    "items": [
+      {
+        "productId": "prod-1",
+        "quantity": -5,
+        "price": 100.00
+      }
+    ]
+  }'
+
+# Tentar fazer login com credenciais inválidas
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "naoexiste@email.com",
+    "password": "senhaerrada"
+  }'
+# Erro esperado: 401 Unauthorized '{
     "name": "Teste",
     "email": "email-invalido",
     "password": "senha123"
@@ -427,11 +554,16 @@ curl -X POST http://localhost:3000/orders \
     "userId": "algum-id",
     "items": [
       {
-        "productId": "prod-1",
-        "quantity": -5,
-        "price": 100.00
-      }
-    ]
+        "Swagger UI**: É a forma mais fácil de testar a API (http://localhost:3000/api/docs)
+2. **Guarde seu access token**: Você precisará dele para todas as requisições protegidas
+3. **Use jq para formatar JSON**: Adicione `| jq` no final dos comandos curl
+4. **Salve IDs em variáveis**: Facilita testes subsequentes
+5. **Use o histórico do bash**: Pressione ↑ para reutilizar comandos
+6. **Teste um fluxo de cada vez**: Isola problemas mais facilmente
+7. **Verifique os logs**: Os microserviços mostram logs úteis no console
+8. **Renove tokens expirados**: Use `/auth/refresh` com o refreshToken
+9. **Teste segurança**: Tente acessar endpoints sem token para confirmar proteção
+10. **Use RabbitMQ UI**: Monitore mensagens em http://localhost:15672
   }'
 ```
 
