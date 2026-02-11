@@ -9,12 +9,14 @@ services:
         depends_on:
             - user-service
             - order-service
+            - payment-service
         environment:
             - NODE_ENV=development
             - HOST=0.0.0.0
             - PORT=3000
             - USER_SERVICE_URL=http://user-service:3001
             - ORDER_SERVICE_URL=http://order-service:3002
+            - PAYMENT_SERVICE_URL=http://payment-service:3003
 
     user-service:
         build:
@@ -54,6 +56,28 @@ services:
             - DB_USERNAME=order_service
             - DB_PASSWORD=order_service_pass
             - DB_DATABASE=orders_db
+            - RMQ_URL=amqp://rabbitmq:5672
+
+    payment-service:
+        build:
+            context: .
+            dockerfile: apps/payment-service/Dockerfile
+        container_name: payment-service
+        ports:
+            - '3003:3003'
+        depends_on:
+            - postgres-payments
+            - rabbitmq
+        environment:
+            - NODE_ENV=development
+            - HOST=0.0.0.0
+            - PORT=3003
+            - DB_HOST=postgres-payments
+            - DB_PORT=5432
+            - DB_USERNAME=payment_service
+            - DB_PASSWORD=payment_service_pass
+            - DB_DATABASE=payments_db
+            - RMQ_URL=amqp://rabbitmq:5672
 
     postgres-users:
         image: postgres:16-alpine
@@ -89,6 +113,23 @@ services:
             timeout: 5s
             retries: 5
 
+    postgres-payments:
+        image: postgres:16-alpine
+        container_name: postgres-payments
+        ports:
+            - '5434:5432'
+        environment:
+            - POSTGRES_USER=payment_service
+            - POSTGRES_PASSWORD=payment_service_pass
+            - POSTGRES_DB=payments_db
+        volumes:
+            - postgres_payments_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U payment_service']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
     rabbitmq:
         image: rabbitmq:3-management
         container_name: rabbitmq
@@ -109,4 +150,5 @@ services:
 volumes:
     postgres_users_data:
     postgres_orders_data:
+    postgres_payments_data:
     rabbitmq_data:

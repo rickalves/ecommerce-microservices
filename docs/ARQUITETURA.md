@@ -11,61 +11,53 @@
                                │ HTTP REST
                                │
                                ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                        API GATEWAY                                │
-│                      (Porta 3000 - HTTP)                          │
-│                                                                   │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐ │
-│  │ Auth Controller  │  │ Users Controller │  │ Orders Controller│ │   
-│  │  + JWT Service   │  └──────────────────┘  └──────────────────┘ │
-│  └──────────────────┘              Swagger UI: /api/docs          │
-└─────────────┬───────────────────────────────┬─────────────────────┘
-              │                               │
-              │ TCP                           │ RMQ
-              │                               │
-    ┌─────────▼──────────┐          ┌─────────▼──────────┐
-    │   USER SERVICE     │          │   ORDER SERVICE    │
-    │  (Porta 3001)      │          │   (Porta 3002)     │
-    │                    │          │                    │
-    │ ┌────────────────┐ │          │ ┌────────────────┐ │
-    │ │ PRESENTATION   │ │          │ │ PRESENTATION   │ │
-    │ │   Controller   │ │          │ │   Controller   │ │
-    │ └───────┬────────┘ │          │ └───────┬────────┘ │
-    │         │          │          │         │          │
-    │ ┌───────▼────────┐ │          │ ┌───────▼────────┐ │
-    │ │ APPLICATION    │ │          │ │ APPLICATION    │ │
-    │ │   Use Cases    │ │          │ │   Use Cases    │ │
-    │ └───────┬────────┘ │          │ └───────┬────────┘ │
-    │         │          │          │         │          │
-    │ ┌───────▼────────┐ │          │ ┌───────▼────────┐ │
-    │ │ DOMAIN         │ │          │ │ DOMAIN         │ │
-    │ │   Entities     │ │          │ │   Entities     │ │
-    │ │   Repository   │ │          │ │   Repository   │ │
-    │ └───────┬────────┘ │          │ └───────┬────────┘ │
-    │         │          │          │         │          │
-    │ ┌───────▼────────┐ │          │ ┌───────▼────────┐ │
-    │ │ INFRASTRUCTURE │ │          │ │ INFRASTRUCTURE │ │
-    │ │ TypeORM Repo   │ │          │ │ TypeORM + RMQ  │ │
-    │ └───────┬────────┘ │          │ └───────┬────────┘ │
-    └─────────┼──────────┘          └─────────┼──────────┘
-              │                               │
-              │ PostgreSQL                    │ PostgreSQL
-              │                               │
-    ┌─────────▼──────────┐          ┌─────────▼──────────┐
-    │  POSTGRES-USERS    │          │  POSTGRES-ORDERS   │
-    │   (Porta 5432)     │          │   (Porta 5433)     │
-    │    users_db        │          │    orders_db       │
-    └────────────────────┘          └──────────┬─────────┘
-                                               │
-                                               │ AMQP
-                                               │ Publica Eventos
-                                               │
-                                    ┌──────────▼──────────┐
-                                    │     RABBITMQ        │
-                                    │ (Porta 5672/15672)  │
-                                    │  Message Broker     │
-                                    │   Order Events      │
-                                    └─────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        API GATEWAY                                   │
+│                      (Porta 3000 - HTTP)                             │
+│                                                                      │
+│  ┌──────────────┐  ┌─────────────┐  ┌──────────────┐  ┌──────────┐ │
+│  │    Auth      │  │    Users    │  │   Orders     │  │ Payments │ │
+│  │ Controller + │  │ Controller  │  │  Controller  │  │Controller│ │
+│  │ JWT Service  │  └─────────────┘  └──────────────┘  └──────────┘ │
+│  └──────────────┘          Swagger UI: /api/docs                    │
+└─────────────┬──────────────────┬─────────────────┬───────────────────┘
+              │                  │                 │
+              │ TCP              │ RMQ             │ RMQ
+              │                  │                 │
+    ┌─────────▼──────┐  ┌────────▼────────┐  ┌────▼───────────┐
+    │ USER SERVICE   │  │ ORDER SERVICE   │  │ PAYMENT SERVICE│
+    │ (Porta 3001)   │  │ (Porta 3002)    │  │ (Porta 3003)   │
+    │   [DDD]        │  │   [DDD + RMQ]   │  │ [DDD + RMQ]    │
+    └────────┬───────┘  └────────┬────────┘  └────┬───────────┘
+             │                   │                 │
+             │ PostgreSQL        │ PostgreSQL      │ PostgreSQL
+             │                   │                 │
+    ┌────────▼────────┐  ┌───────▼────────┐  ┌────▼───────────┐
+    │ POSTGRES-USERS  │  │ POSTGRES-ORDERS│  │POSTGRES-PAYMENTS│
+    │  (Porta 5432)   │  │  (Porta 5433)  │  │  (Porta 5434)  │
+    │   users_db      │  │   orders_db    │  │  payments_db   │
+    └─────────────────┘  └───────┬────────┘  └────┬───────────┘
+                                 │                 │
+                                 │     AMQP        │
+                                 └────────┬────────┘
+                                          │
+                               ┌──────────▼──────────┐
+                               │     RABBITMQ        │
+                               │ (Porta 5672/15672)  │
+                               │  Message Broker     │
+                               │                     │
+                               │ ┌─────────────────┐ │
+                               │ │ order.created   │ │
+                               │ │ order.accepted  │ │
+                               │ │ order.cancelled │ │
+                               │ │ payment.completed│ │
+                               │ │ payment.failed  │ │
+                               │ └─────────────────┘ │
+                               └─────────────────────┘
+
+Event Flow:
+1. Order Created → Payment Service (process payment)
+2. Payment Completed/Failed → Order Service (update status)
 ```
 
 ## 🏗️ Estrutura DDD por Camada
@@ -155,13 +147,28 @@ Responsabilidade: Implementações técnicas
 1. Cliente → POST /orders
 2. API Gateway → Orders Controller
 3. Orders Controller → ORDER_SERVICE.send('create_order')
-4. Order Service → OrderController (TCP)
+4. Order Service → OrderController (RMQ)
 5. OrderController → CreateOrderUseCase
 6. CreateOrderUseCase → Order.create() (Entity)
 7. Order Entity → Calcula totalAmount
 8. TypeOrmOrderRepository → PostgreSQL (orders_db)
-9. UseCase → Publica evento no RabbitMQ (opcional)
+9. UseCase → Publica evento 'order.created.accepted' no RabbitMQ
 10. Resposta volta pela cadeia inversa
+```
+
+### Processar Pagamento (Event-Driven)
+
+```
+1. Order Service → Publica 'order.created.accepted' no RabbitMQ
+2. Payment Service → Escuta evento 'order.created.accepted'
+3. PaymentController → ProcessPaymentUseCase
+4. ProcessPaymentUseCase → Payment.create() (Entity)
+5. Payment Entity → Simula processamento (90% success rate)
+6. TypeOrmPaymentRepository → PostgreSQL (payments_db)
+7. UseCase → Publica 'payment.completed' ou 'payment.failed'
+8. Order Service → Escuta evento de pagamento
+   - payment.completed → Confirma pedido (Status CONFIRMED)
+   - payment.failed → Cancela pedido (Status CANCELLED)
 ```
 
 ## 📦 Estrutura de Pacotes
@@ -172,7 +179,8 @@ monorepo/
 ├── apps/                          # Aplicações
 │   ├── api-gateway/              # Gateway HTTP
 │   ├── user-service/             # Microserviço de usuários
-│   └── order-service/            # Microserviço de pedidos
+│   ├── order-service/            # Microserviço de pedidos
+│   └── payment-service/          # Microserviço de pagamentos
 │
 └── packages/                      # Código compartilhado
     └── shared/                   # DTOs e Interfaces
@@ -228,18 +236,20 @@ monorepo/
 ## 🔌 Portas e Protocolos
 
 ```
-┌────────────────┴────────────┴────────────┴───────────────┐
-│   Serviço      │ Porta│ Protocolo  │   Descrição         │
-├────────────────┼──────┼────────────┼─────────────────────┤
-│ API Gateway    │ 3000 │   HTTP     │ REST API + JWT      │
-│ Swagger UI     │ 3000 │   HTTP     │ /api/docs           │
-│ User Service   │ 3001 │   TCP      │ Microserviço        │
-│ Order Service  │ 3002 │   RMQ      │ Microserviço        │
-│ RabbitMQ       │ 5672 │   AMQP     │ Message Broker      │
-│ RabbitMQ UI    │15672 │   HTTP     │ Management Console  │
-│ Postgres Users │ 5432 │ PostgreSQL │ DB do User Service  │
-│ Postgres Orders│ 5433 │ PostgreSQL │ DB do Order Service │
-└────────────────┴──────┴────────────┴─────────────────────┘
+┌─────────────────┴────────────┴────────────┴──────────────────────┐
+│   Serviço       │ Porta│ Protocolo  │   Descrição              │
+├─────────────────┼──────┼────────────┼──────────────────────────┤
+│ API Gateway     │ 3000 │   HTTP     │ REST API + JWT           │
+│ Swagger UI      │ 3000 │   HTTP     │ /api/docs                │
+│ User Service    │ 3001 │   TCP      │ Microserviço             │
+│ Order Service   │ 3002 │   RMQ      │ Microserviço + Events    │
+│ Payment Service │ 3003 │   RMQ      │ Microserviço + Events    │
+│ RabbitMQ        │ 5672 │   AMQP     │ Message Broker           │
+│ RabbitMQ UI     │15672 │   HTTP     │ Management Console       │
+│ Postgres Users  │ 5432 │ PostgreSQL │ DB do User Service       │
+│ Postgres Orders │ 5433 │ PostgreSQL │ DB do Order Service      │
+│ Postgres Payments│5434 │ PostgreSQL │ DB do Payment Service    │
+└─────────────────┴──────┴────────────┴──────────────────────────┘
 ```
 
 ## 🗂️ Entidades e Relacionamentos
@@ -263,20 +273,50 @@ monorepo/
 │      ORDER      │
 ├─────────────────┤
 │ - id            │
-│ - userId        │◄────┐
-│ - items[]       │     │
-│ - totalAmount   │     │
-│ - status        │     │
-│ - createdAt     │     │
-│ - updatedAt     │     │ 
-└─────────────────┘     │
-                        │
-Status Enum:            │
-- PENDING ──────────────┘
-- CONFIRMED
+│ - userId        │
+│ - items[]       │
+│ - totalAmount   │
+│ - status        │
+│ - createdAt     │
+│ - updatedAt     │
+└────────┬────────┘
+         │
+         │ 1:1
+         │
+         ▼
+┌─────────────────┐
+│    PAYMENT      │
+├─────────────────┤
+│ - id            │
+│ - orderId       │
+│ - userId        │
+│ - amount        │
+│ - status        │
+│ - method        │
+│ - transactionId │
+│ - createdAt     │
+│ - updatedAt     │
+└─────────────────┘
+
+Order Status Enum:
+- PENDING
+- CONFIRMED (após payment.completed)
 - SHIPPED
 - DELIVERED
-- CANCELLED
+- CANCELLED (após payment.failed)
+
+Payment Status Enum:
+- PENDING
+- PROCESSING
+- COMPLETED
+- FAILED
+- REFUNDED
+
+Payment Method Enum:
+- CREDIT_CARD
+- DEBIT_CARD
+- PIX
+- BOLETO
 ```
 
 ## 🚀 Vantagens da Arquitetura

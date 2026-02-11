@@ -10,13 +10,15 @@ System_Boundary(ecommerce, "Ecommerce Platform") {
 
   System_Boundary(services, "Microservices") {
     System(userService, "User Service", "Microserviço de usuários — TCP. Porta 3001")
-    System(orderService, "Order Service", "Microserviço de pedidos — RMQ/TCP. Porta 3002")
+    System(orderService, "Order Service", "Microserviço de pedidos — RMQ. Porta 3002")
+    System(paymentService, "Payment Service", "Microserviço de pagamentos — RMQ. Porta 3003")
   }
 
   System_Boundary(infra, "Infrastructure") {
     System_Boundary(datastores, "Databases") {
       System(postgresUsers, "Postgres Users DB", "PostgreSQL (users_db) — Porta 5432")
       System(postgresOrders, "Postgres Orders DB", "PostgreSQL (orders_db) — Porta 5433")
+      System(postgresPayments, "Postgres Payments DB", "PostgreSQL (payments_db) — Porta 5434")
     }
     System(rabbitmq, "RabbitMQ", "Message broker (AMQP) — Portas 5672 / 15672")
   }
@@ -25,15 +27,19 @@ System_Boundary(ecommerce, "Ecommerce Platform") {
 Rel(cliente, apiGateway, "Usa", "HTTP/REST")
 
 Rel(apiGateway, userService, "Chama endpoints do serviço de usuários (síncrono)", "TCP")
-Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "TCP")
+Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "RMQ")
+Rel(apiGateway, paymentService, "Chama endpoints do serviço de pagamentos (síncrono)", "RMQ")
 
 Rel(userService, postgresUsers, "Lê / Escreve", "PostgreSQL")
 Rel(orderService, postgresOrders, "Lê / Escreve", "PostgreSQL")
+Rel(paymentService, postgresPayments, "Lê / Escreve", "PostgreSQL")
 
-Rel(orderService, rabbitmq, "Publica eventos de domínio", "AMQP")
-Rel(apiGateway, rabbitmq, "(Opcional) Publica/consome eventos/integrações", "AMQP")
+Rel(orderService, rabbitmq, "Publica eventos de domínio (order.created.accepted)", "AMQP")
+Rel(paymentService, rabbitmq, "Publica eventos de pagamento (payment.completed/failed)", "AMQP")
+Rel(paymentService, rabbitmq, "Consome eventos de pedidos", "AMQP")
+Rel(orderService, rabbitmq, "Consome eventos de pagamento", "AMQP")
 
 %% Observações:
 %% - Agrupei elementos em boundaries para reduzir entrelaçamento de setas.
 %% - `API Layer` contém o gateway; `Microservices` contém os serviços; `Infrastructure` contém DBs e broker.
-
+%% - Payment Service escuta eventos de Order Service e publica eventos de volta (event-driven architecture).

@@ -7,7 +7,7 @@ C4Component
     Container(apiGateway, "API Gateway", "NestJS", "Ponto único de entrada HTTP. JWT Auth. Swagger. Porta 3000")
     Component(apiHttpController, "API HTTP Controller", "NestJS Controller", "Recebe requisições HTTP e encaminha para os services apropriados")
     Component(apiAuthGuard, "Auth Guard", "JWT Guard", "Valida tokens JWT e injeta identidade no contexto da requisição")
-    Component(apiProxyService, "Proxy Service", "Service", "Adaptador que faz chamadas TCP/HTTP para microserviços internos")
+    Component(apiProxyService, "Proxy Service", "Service", "Adaptador que faz chamadas TCP/RMQ para microserviços internos")
 
     Container_Boundary(services, "Microservices") {
       Container(userService, "User Service", "NestJS + TypeORM", "Serviço de usuários — Porta 3001")
@@ -21,13 +21,22 @@ C4Component
       Component(orderAppService, "OrderAppService", "Service", "Aplica regras de negócio e coordena persistência")
       Component(orderRepo, "OrderRepository", "TypeORM Repository", "Acesso ao banco orders_db")
       Component(orderAggregate, "Order Aggregate", "Domain Model", "Modela invariantes e comportamentos do agregado Order")
-      Component(orderEventPublisher, "OrderEventPublisher", "AMQP Publisher", "Publica eventos de domínio (OrderCreated) para RabbitMQ")
-      Component(orderEventConsumer, "OrderEventConsumer", "AMQP Consumer", "Consumidor de eventos/integrations via RabbitMQ")
+      Component(orderEventPublisher, "OrderEventPublisher", "AMQP Publisher", "Publica eventos de domínio (order.created.accepted) para RabbitMQ")
+      Component(orderEventConsumer, "OrderEventConsumer", "AMQP Consumer", "Consome eventos de pagamento (payment.completed/failed)")
+
+      Container(paymentService, "Payment Service", "NestJS + TypeORM", "Serviço de pagamentos — Porta 3003")
+      Component(paymentController, "PaymentController", "NestJS Controller", "Exponibiliza endpoints de pagamentos")
+      Component(paymentAppService, "PaymentAppService", "Service", "Processa pagamentos e coordena com repositório")
+      Component(paymentRepo, "PaymentRepository", "TypeORM Repository", "Acesso ao banco payments_db")
+      Component(paymentAggregate, "Payment Aggregate", "Domain Model", "Modela regras de pagamento (status, validações)")
+      Component(paymentEventPublisher, "PaymentEventPublisher", "AMQP Publisher", "Publica eventos (payment.completed/failed)")
+      Component(paymentEventConsumer, "PaymentEventConsumer", "AMQP Consumer", "Consome eventos de pedidos (order.created.accepted)")
     }
 
     Container_Boundary(infra, "Infraestrutura") {
       Container(postgresUsers, "Postgres Users DB", "PostgreSQL", "Banco de dados users_db — Porta 5432")
       Container(postgresOrders, "Postgres Orders DB", "PostgreSQL", "Banco de dados orders_db — Porta 5433")
+      Container(postgresPayments, "Postgres Payments DB", "PostgreSQL", "Banco de dados payments_db — Porta 5434")
       Container(rabbitmq, "RabbitMQ", "Message Broker (AMQP)", "Broker de mensagens — Portas 5672 / 15672")
     }
   }
@@ -35,10 +44,11 @@ C4Component
   %% Relações entre API Gateway e componentes dos serviços
   Rel(cliente, apiHttpController, "Usa", "HTTP/REST")
   Rel(apiHttpController, apiAuthGuard, "Protege requisições com", "JWT")
-  Rel(apiHttpController, apiProxyService, "Encaminha requisições para", "TCP/HTTP")
+  Rel(apiHttpController, apiProxyService, "Encaminha requisições para", "TCP/RMQ")
 
   Rel(apiProxyService, userController, "Chama endpoints de usuários (síncrono)", "TCP")
-  Rel(apiProxyService, orderController, "Chama endpoints de pedidos (síncrono)", "TCP")
+  Rel(apiProxyService, orderController, "Chama endpoints de pedidos (síncrono)", "RMQ")
+  Rel(apiProxyService, paymentController, "Chama endpoints de pagamentos (síncrono)", "RMQ")
 
   %% Fluxo interno do User Service
   Rel(userController, userAppService, "Invoca", "method call")
@@ -47,15 +57,26 @@ C4Component
   %% Fluxo interno do Order Service
   Rel(orderController, orderAppService, "Invoca", "method call")
   Rel(orderAppService, orderRepo, "Lê / Escreve", "PostgreSQL / TypeORM")
-  Rel(orderAppService, orderEventPublisher, "Publica evento OrderCreated para", "AMQP")
-  Rel(orderEventConsumer, orderAppService, "Consome eventos/integrações para", "AMQP")
+  Rel(orderAppService, orderEventPublisher, "Publica evento order.created.accepted para", "AMQP")
+  Rel(orderEventConsumer, orderAppService, "Consome eventos de pagamento para atualizar status", "AMQP")
+
+  %% Fluxo interno do Payment Service (Event-Driven)
+  Rel(paymentController, paymentAppService, "Invoca", "method call")
+  Rel(paymentAppService, paymentRepo, "Lê / Escreve", "PostgreSQL / TypeORM")
+  Rel(paymentEventConsumer, paymentAppService, "Consome order.created.accepted e processa pagamento", "AMQP")
+  Rel(paymentAppService, paymentEventPublisher, "Publica payment.completed/failed para", "AMQP")
 
   %% Dependências infra
   Rel(userRepo, postgresUsers, "Lê / Escreve", "PostgreSQL")
   Rel(orderRepo, postgresOrders, "Lê / Escreve", "PostgreSQL")
+  Rel(paymentRepo, postgresPayments, "Lê / Escreve", "PostgreSQL")
+
   Rel(orderEventPublisher, rabbitmq, "Publica eventos em", "AMQP")
   Rel(orderEventConsumer, rabbitmq, "Consome eventos de", "AMQP")
+  Rel(paymentEventPublisher, rabbitmq, "Publica eventos em", "AMQP")
+  Rel(paymentEventConsumer, rabbitmq, "Consome eventos de", "AMQP")
 
   %% Observações:
-  %% - `OrderEventPublisher` é um componente de integração responsável por garantir entrega at-least-once no broker.
-  %% - `OrderAggregate` encapsula regras de consistência do domínio; `AppService` coordena com o repositório e publisher.
+  %% - `OrderEventPublisher` e `PaymentEventPublisher` garantem entrega at-least-once no broker.
+  %% - `OrderAggregate` e `PaymentAggregate` encapsulam regras de consistência do domínio.
+  %% - Payment Service é event-driven: reage a order.created.accepted e publica payment events.

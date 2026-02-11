@@ -11,6 +11,8 @@ sequenceDiagram
     participant OrderService
     participant OrderRepository
     participant RabbitMQ
+    participant PaymentService
+    participant PaymentRepository
     participant Worker
 
     %% Fluxo principal: criação de pedido (síncrono até persistência)
@@ -32,21 +34,50 @@ sequenceDiagram
         OrderService-->>API: 400 Bad Request
         API-->>Cliente: 400 Bad Request
     else
-        OrderService->>OrderRepository: INSERT order status pending
+        OrderService->>OrderRepository: INSERT order status PENDING
         OrderRepository-->>OrderService: order persisted id
 
-        OrderService->>RabbitMQ: publish OrderCreated event with orderId and userId
+        OrderService->>RabbitMQ: publish order.created.accepted event with orderId and userId
         OrderService-->>API: 201 Created orderId
         API-->>Cliente: 201 Created orderId
     end
 
-    %% Processamento assíncrono: consumidor/worker reage ao evento
-    RabbitMQ->>Worker: OrderCreated event
-    Worker->>OrderRepository: UPDATE order set status processing_confirmed
-    OrderRepository-->>Worker: updated
-    Worker->>RabbitMQ: publish OrderConfirmed and notifications
+    %% Processamento assíncrono: Payment Service processa pagamento
+    Note over RabbitMQ,PaymentService: Event-Driven Payment Processing
+    RabbitMQ->>PaymentService: order.created.accepted event
+    PaymentService->>PaymentService: create payment with status PENDING
+    PaymentService->>PaymentRepository: INSERT payment for orderId
+    PaymentRepository-->>PaymentService: payment created id
+
+    PaymentService->>PaymentService: simulate payment processing (90% success rate)
+
+    alt payment successful
+        PaymentService->>PaymentRepository: UPDATE payment status COMPLETED
+        PaymentRepository-->>PaymentService: updated
+        PaymentService->>RabbitMQ: publish payment.completed event with orderId
+
+        Note over RabbitMQ,OrderService: Order reacts to payment success
+        RabbitMQ->>OrderService: payment.completed event
+        OrderService->>OrderRepository: UPDATE order status CONFIRMED
+        OrderRepository-->>OrderService: updated
+    else payment failed
+        PaymentService->>PaymentRepository: UPDATE payment status FAILED
+        PaymentRepository-->>PaymentService: updated
+        PaymentService->>RabbitMQ: publish payment.failed event with orderId
+
+        Note over RabbitMQ,OrderService: Order reacts to payment failure
+        RabbitMQ->>OrderService: payment.failed event
+        OrderService->>OrderRepository: UPDATE order status CANCELLED
+        OrderRepository-->>OrderService: updated
+    end
+
+    %% Processamento adicional: worker reage aos eventos
+    RabbitMQ->>Worker: OrderConfirmed and notifications
+    Worker->>Worker: Send confirmation email and notifications
 
 %% Observações:
 %% - correlationId deve ser propagado para tracing e logs distribuídos.
 %% - O gateway realiza autenticação e validação leve; lógica de domínio fica no OrderService.
-%% - OrderCreated é publicado de forma at-least-once; consumidores idempotentes devem ser usados.
+%% - order.created.accepted é publicado de forma at-least-once; consumidores idempotentes devem ser usados.
+%% - Payment Service implementa arquitetura event-driven: escuta ordem e publica eventos de pagamento.
+%% - Order Service reage automaticamente a eventos de pagamento para atualizar status.

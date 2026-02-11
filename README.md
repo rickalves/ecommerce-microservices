@@ -20,9 +20,11 @@ Projeto de microserviços usando NestJS com arquitetura DDD (Domain-Driven Desig
 - **API Gateway** (porta 3000) - Ponto de entrada HTTP + Autenticação JWT
 - **User Service** (porta 3001) - Gerenciamento de usuários + PostgreSQL
 - **Order Service** (porta 3002) - Gerenciamento de pedidos + PostgreSQL
+- **Payment Service** (porta 3003) - Processamento de pagamentos + PostgreSQL + Event-driven
 - **RabbitMQ** (portas 5672/15672) - Message broker para comunicação assíncrona
 - **PostgreSQL Users** (porta 5432) - Banco de dados de usuários
 - **PostgreSQL Orders** (porta 5433) - Banco de dados de pedidos
+- **PostgreSQL Payments** (porta 5434) - Banco de dados de pagamentos
 
 ### Estrutura DDD
 
@@ -107,6 +109,7 @@ docker-compose down -v
 - 🐰 RabbitMQ Management: http://localhost:15672 (guest/guest)
 - 🐘 PostgreSQL Users: localhost:5432
 - 🐘 PostgreSQL Orders: localhost:5433
+- 🐘 PostgreSQL Payments: localhost:5434
 
 ## 📦 Scripts Disponíveis
 
@@ -212,6 +215,30 @@ Resposta: `{ accessToken, refreshToken }`
 **PATCH** `/orders/:id/deliver` - Entregar pedido (SHIPPED → DELIVERED)
 
 **PATCH** `/orders/:id/cancel` - Cancelar pedido (exceto DELIVERED)
+
+### 💳 Payments (Requer autenticação JWT)
+
+**POST** `/payments` - Criar novo pagamento
+
+```json
+{
+    "orderId": "uuid-do-pedido",
+    "amount": 299.90,
+    "method": "CREDIT_CARD"
+}
+```
+
+**GET** `/payments/:id` - Buscar pagamento por ID
+
+**GET** `/payments/order/:orderId` - Buscar pagamento de um pedido
+
+**GET** `/payments/user/:userId` - Listar pagamentos de um usuário
+
+**GET** `/payments` - Listar todos os pagamentos
+
+**PATCH** `/payments/:id/refund` - Reembolsar pagamento
+
+**Fluxo automático:** Quando um pedido é aceito (`order.created.accepted`), o Payment Service cria automaticamente um pagamento e processa. Após processamento, eventos são publicados (`payment.completed` ou `payment.failed`) e o Order Service atualiza o status do pedido automaticamente.
 
 ### 📚 Documentação
 
@@ -345,6 +372,11 @@ cd ../..
 cd apps/order-service
 pnpm migration:run
 cd ../..
+
+# Payment Service
+cd apps/payment-service
+pnpm migration:run
+cd ../..
 ```
 
 ### Gerar nova migração
@@ -357,6 +389,11 @@ cd ../..
 
 # Order Service
 cd apps/order-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+
+# Payment Service
+cd apps/payment-service
 pnpm migration:generate NomeDaMigracao
 cd ../..
 ```
@@ -373,6 +410,11 @@ cd ../..
 cd apps/order-service
 pnpm migration:revert
 cd ../..
+
+# Payment Service
+cd apps/payment-service
+pnpm migration:revert
+cd ../..
 ```
 
 ### Conectar ao banco via psql
@@ -383,6 +425,9 @@ docker exec -it postgres-users psql -U user_service -d users_db
 
 # Database Orders
 docker exec -it postgres-orders psql -U order_service -d orders_db
+
+# Database Payments
+docker exec -it postgres-payments psql -U payment_service -d payments_db
 ```
 
 ## 📝 Próximos Passos
@@ -392,9 +437,9 @@ docker exec -it postgres-orders psql -U order_service -d orders_db
 - [x] Implementar autenticação JWT completa
 - [x] Adicionar Swagger UI para documentação
 - [x] Configurar RabbitMQ para mensageria
-- [ ] Implementar testes unitários e E2E
-- [ ] Implementar CI/CD com GitHub Actions
-- [ ] Implementar circuit breaker
+- [x] Implementar testes unitários e E2E
+- [x] Implementar CI/CD com GitHub Actions
+- [x] Implementar circuit breaker
 - [ ] Adicionar logging centralizado
 - [ ] Implementar event-driven communication com RabbitMQ
 - [ ] Adicionar rate limiting

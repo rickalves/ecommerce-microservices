@@ -1,0 +1,39 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+
+import { PaymentController } from './presentation/controllers/payment.controller';
+import { ProcessPaymentUseCase } from './application/use-cases/process-payment.use-case';
+import { GetPaymentUseCase } from './application/use-cases/get-payment.use-case';
+import { RefundPaymentUseCase } from './application/use-cases/refund-payment.use-case';
+import { TypeOrmPaymentRepository } from './infrastructure/database/repositories/typeorm-payment.repository';
+import { PAYMENT_REPOSITORY } from './domain/repositories/payment.repository.interface';
+import { PaymentEntity } from './infrastructure/database/entities/payment.entity';
+
+@Module({
+    imports: [
+        TypeOrmModule.forFeature([PaymentEntity]),
+        ClientsModule.register([
+            {
+                name: 'EVENT_BUS',
+                transport: Transport.RMQ,
+                options: {
+                    urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
+                    queue: 'events',
+                    queueOptions: { durable: true },
+                },
+            },
+        ]),
+    ],
+    controllers: [PaymentController],
+    providers: [
+        ProcessPaymentUseCase,
+        GetPaymentUseCase,
+        RefundPaymentUseCase,
+        {
+            provide: PAYMENT_REPOSITORY,
+            useClass: TypeOrmPaymentRepository,
+        },
+    ],
+})
+export class PaymentModule {}

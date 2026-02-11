@@ -14,7 +14,107 @@
 
 ## 🎯 Cenários de Teste Completos
 
-### Cenário 1: E-commerce Básico
+### Cenário 1: Fluxo Completo com Pagamento Automático (Event-Driven) 🆕
+
+Este é o fluxo principal que demonstra a arquitetura event-driven com o Payment Service:
+
+```bash
+# 1. Registrar usuário e obter token
+AUTH_RESPONSE=$(curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Maria Silva",
+    "email": "maria@email.com",
+    "password": "maria123"
+  }')
+
+USER_ID=$(echo $AUTH_RESPONSE | jq -r '.user.id')
+ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.accessToken')
+echo "Usuário criado: $USER_ID"
+echo "Token: $ACCESS_TOKEN"
+
+# 2. Criar pedido
+echo "
+Criando pedido..."
+ORDER=$(curl -s -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d "{
+    \"userId\": \"$USER_ID\",
+    \"items\": [
+      {
+        \"productId\": \"notebook-dell-i7\",
+        \"quantity\": 1,
+        \"price\": 4500.00
+      },
+      {
+        \"productId\": \"mouse-wireless\",
+        \"quantity\": 1,
+        \"price\": 120.00
+      }
+    ]
+  }")
+
+ORDER_ID=$(echo $ORDER | jq -r '.id')
+TOTAL_AMOUNT=$(echo $ORDER | jq -r '.totalAmount')
+echo "Pedido criado: $ORDER_ID"
+echo "Total: R$ $TOTAL_AMOUNT"
+echo "Status inicial: PENDING"
+
+# 3. Aguardar processamento automático do pagamento (evento order.created.accepted)
+echo "
+Aguardando processamento do pagamento (via eventos RabbitMQ)..."
+sleep 3
+
+# 4. Verificar pagamento criado automaticamente
+echo "
+Buscando pagamento do pedido..."
+PAYMENT=$(curl -s http://localhost:3000/payments/order/$ORDER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+PAYMENT_ID=$(echo $PAYMENT | jq -r '.id')
+PAYMENT_STATUS=$(echo $PAYMENT | jq -r '.status')
+echo "Pagamento ID: $PAYMENT_ID"
+echo "Status do pagamento: $PAYMENT_STATUS"
+
+# 5. Verificar status do pedido (deve estar CONFIRMED se pagamento foi bem-sucedido)
+echo "
+Verificando status do pedido após pagamento..."
+ORDER_STATUS=$(curl -s http://localhost:3000/orders/$ORDER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq -r '.status')
+echo "Status do pedido: $ORDER_STATUS"
+
+if [ "$ORDER_STATUS" = "CONFIRMED" ]; then
+  echo "✓ Pagamento aprovado! Pedido confirmado automaticamente."
+
+  # 6. Continuar com o fluxo de envio e entrega
+  echo "
+Enviando pedido..."
+  curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/ship \
+    -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
+  echo "✓ Pedido enviado!"
+
+  echo "
+Entregando pedido..."
+  sleep 1
+  curl -s -X PATCH http://localhost:3000/orders/$ORDER_ID/deliver \
+    -H "Authorization: Bearer $ACCESS_TOKEN" > /dev/null
+  echo "✓ Pedido entregue!"
+
+elif [ "$ORDER_STATUS" = "CANCELLED" ]; then
+  echo "✗ Pagamento recusado. Pedido cancelado automaticamente."
+else
+  echo "⏳ Pedido ainda em processamento..."
+fi
+
+# 7. Ver histórico de pagamentos do usuário
+echo "
+Histórico de pagamentos do usuário:"
+curl -s http://localhost:3000/payments/user/$USER_ID \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | jq
+```
+
+### Cenário 2: E-commerce Básico
 
 #### 0. Configurar autenticação (NOVO)
 

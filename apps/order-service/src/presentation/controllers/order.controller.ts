@@ -68,4 +68,22 @@ export class OrderController {
     async cancelOrder(@Payload() orderId: string) {
         return this.updateOrderStatusUseCase.cancelOrder(orderId);
     }
+
+    @EventPattern('payment.completed')
+    async handlePaymentCompleted(@Payload() data: any) {
+        // Quando pagamento é completado, confirma o pedido
+        const { orderId } = data;
+        if (orderId) {
+            return this.updateOrderStatusUseCase.confirmOrder(orderId);
+        }
+    }
+
+    @EventPattern('payment.failed')
+    async handlePaymentFailed(@Payload() data: any) {
+        // Quando pagamento falha, cancela o pedido
+        const { orderId } = data;
+        if (orderId) {
+            return this.updateOrderStatusUseCase.cancelOrder(orderId);
+        }
+    }
 }

@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { UsersController } from './users/users.controller';
 import { OrdersController } from './orders/orders.controller';
+import { PaymentsController } from './payments/payments.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
@@ -27,11 +28,20 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
                     queueOptions: { durable: true },
                 },
             },
+            {
+                name: 'PAYMENT_SERVICE',
+                transport: Transport.RMQ,
+                options: {
+                    urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
+                    queue: 'payment_queue',
+                    queueOptions: { durable: true },
+                },
+            },
         ]),
         AuthModule,
-        
+
     ],
-    controllers: [UsersController, OrdersController],
+    controllers: [UsersController, OrdersController, PaymentsController],
     providers: [
         {
             provide: APP_GUARD,

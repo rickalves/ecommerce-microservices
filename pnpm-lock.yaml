@@ -176,6 +176,73 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  apps/payment-service:
+    dependencies:
+      '@ecommerce/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@nestjs/common':
+        specifier: ^11.1.12
+        version: 11.1.12(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.12
+        version: 11.1.12(@nestjs/common@11.1.12(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.12)(@nestjs/platform-express@11.1.12)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/microservices':
+        specifier: ^11.1.12
+        version: 11.1.12(@nestjs/common@11.1.12(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.12)(amqp-connection-manager@5.0.0(amqplib@0.10.9))(amqplib@0.10.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.12
+        version: 11.1.12(@nestjs/common@11.1.12(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.12)
+      '@nestjs/typeorm':
+        specifier: ^11.0.0
+        version: 11.0.0(@nestjs/common@11.1.12(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.12)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.28(pg@8.18.0)(ts-node@10.9.2(@types/node@20.19.30)(typescript@5.9.3)))
+      amqp-connection-manager:
+        specifier: ^5.0.0
+        version: 5.0.0(amqplib@0.10.9)
+      amqplib:
+        specifier: ^0.10.9
+        version: 0.10.9
+      pg:
+        specifier: ^8.18.0
+        version: 8.18.0
+      reflect-metadata:
+        specifier: ^0.2.1
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
+      typeorm:
+        specifier: ^0.3.28
+        version: 0.3.28(pg@8.18.0)(ts-node@10.9.2(@types/node@20.19.30)(typescript@5.9.3))
+      uuid:
+        specifier: ^9.0.1
+        version: 9.0.1
+    devDependencies:
+      '@ecommerce/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@nestjs/cli':
+        specifier: ^11.0.16
+        version: 11.0.16(@types/node@20.19.30)
+      '@nestjs/schematics':
+        specifier: ^11.0.9
+        version: 11.0.9(chokidar@4.0.3)(typescript@5.9.3)
+      '@types/node':
+        specifier: ^20.11.0
+        version: 20.19.30
+      '@types/uuid':
+        specifier: ^9.0.7
+        version: 9.0.8
+      dotenv:
+        specifier: ^17.2.4
+        version: 17.2.4
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.19.30)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   apps/user-service:
     dependencies:
       '@ecommerce/shared':

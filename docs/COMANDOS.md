@@ -45,10 +45,18 @@ pnpm dev
 ```bash
 cd apps/order-service
 pnpm dev
-# Deve exibir: Order Service is listening on port 3002
+# Deve exibir: Order Service is listening on RabbitMQ - order_queue
 ```
 
-**Terminal 3 - API Gateway:**
+**Terminal 3 - Payment Service:**
+
+```bash
+cd apps/payment-service
+pnpm dev
+# Deve exibir: Payment Service is listening on RabbitMQ - payment_queue
+```
+
+**Terminal 4 - API Gateway:**
 
 ```bash
 cd apps/api-gateway
@@ -231,6 +239,56 @@ curl -X PATCH http://localhost:3000/orders/{ORDER_ID}/cancel \
 
 **Nota:** Pedidos entregues não podem ser cancelados!
 
+### Criar pagamento manualmente (requer autenticação)
+
+```bash
+curl -X POST http://localhost:3000/payments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI" \
+  -d '{
+    "orderId": "ORDER_ID_AQUI",
+    "amount": 299.90,
+    "method": "CREDIT_CARD"
+  }'
+```
+
+**Nota:** Normalmente o pagamento é criado automaticamente quando um pedido é aceito via evento `order.created.accepted`.
+
+### Buscar pagamento por ID (requer autenticação)
+
+```bash
+curl http://localhost:3000/payments/{PAYMENT_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
+### Buscar pagamento de um pedido (requer autenticação)
+
+```bash
+curl http://localhost:3000/payments/order/{ORDER_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
+### Listar pagamentos de um usuário (requer autenticação)
+
+```bash
+curl http://localhost:3000/payments/user/{USER_ID} \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
+### Listar todos os pagamentos (requer autenticação)
+
+```bash
+curl http://localhost:3000/payments \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
+### Reembolsar pagamento (requer autenticação)
+
+```bash
+curl -X PATCH http://localhost:3000/payments/{PAYMENT_ID}/refund \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN_AQUI"
+```
+
 ## 4️⃣ Build para Produção
 
 ### Build de todos os projetos
@@ -384,10 +442,11 @@ Os serviços agora usam PostgreSQL para persistência de dados. Cada serviço te
 
 - **postgres-users** (porta 5432): banco de dados do User Service
 - **postgres-orders** (porta 5433): banco de dados do Order Service
+- **postgres-payments** (porta 5434): banco de dados do Payment Service
 
 ```bash
 # Iniciar apenas os bancos de dados
-docker-compose up -d postgres-users postgres-orders
+docker-compose up -d postgres-users postgres-orders postgres-payments
 
 # Verificar status dos containers
 docker ps --filter "name=postgres"
@@ -407,6 +466,11 @@ cd ../..
 cd apps/order-service
 pnpm migration:run
 cd ../..
+
+# Executar migrações do Payment Service
+cd apps/payment-service
+pnpm migration:run
+cd ../..
 ```
 
 ### Gerar novas migrações
@@ -421,6 +485,11 @@ cd ../..
 
 # Order Service
 cd apps/order-service
+pnpm migration:generate NomeDaMigracao
+cd ../..
+
+# Payment Service
+cd apps/payment-service
 pnpm migration:generate NomeDaMigracao
 cd ../..
 ```
@@ -439,6 +508,11 @@ cd ../..
 cd apps/order-service
 pnpm migration:revert
 cd ../..
+
+# Payment Service
+cd apps/payment-service
+pnpm migration:revert
+cd ../..
 ```
 
 ### Conectar ao banco de dados
@@ -449,6 +523,9 @@ docker exec -it postgres-users psql -U user_service -d users_db
 
 # Order Service Database
 docker exec -it postgres-orders psql -U order_service -d orders_db
+
+# Payment Service Database
+docker exec -it postgres-payments psql -U payment_service -d payments_db
 ```
 
 ### Acessar RabbitMQ Management UI

@@ -1,0 +1,42 @@
+{
+    "name": "@ecommerce/payment-service",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "nest build",
+        "dev": "nest start --watch",
+        "lint": "eslint --ext .ts ./src",
+        "lint:fix": "eslint --ext .ts ./src --fix",
+        "format": "prettier --write ./src",
+        "start": "node dist/main",
+        "start:prod": "node dist/main",
+        "typeorm": "typeorm-ts-node-commonjs",
+        "migration:generate": "pnpm typeorm migration:generate -d src/infrastructure/database/data-source.ts src/infrastructure/database/migrations",
+        "migration:run": "pnpm typeorm migration:run -d src/infrastructure/database/data-source.ts",
+        "migration:revert": "pnpm typeorm migration:revert -d src/infrastructure/database/data-source.ts"
+    },
+    "dependencies": {
+        "@ecommerce/shared": "workspace:*",
+        "@nestjs/common": "^11.1.12",
+        "@nestjs/core": "^11.1.12",
+        "@nestjs/microservices": "^11.1.12",
+        "@nestjs/platform-express": "^11.1.12",
+        "@nestjs/typeorm": "^11.0.0",
+        "pg": "^8.18.0",
+        "reflect-metadata": "^0.2.1",
+        "rxjs": "^7.8.1",
+        "typeorm": "^0.3.28",
+        "uuid": "^9.0.1",
+        "amqplib": "^0.10.9",
+        "amqp-connection-manager": "^5.0.0"
+    },
+    "devDependencies": {
+        "@ecommerce/typescript-config": "workspace:*",
+        "@nestjs/cli": "^11.0.16",
+        "@nestjs/schematics": "^11.0.9",
+        "@types/node": "^20.11.0",
+        "@types/uuid": "^9.0.7",
+        "dotenv": "^17.2.4",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
+}

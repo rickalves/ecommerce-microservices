@@ -9,11 +9,13 @@ System_Boundary(ecommerce, "Ecommerce Platform") {
   Container_Boundary(services, "Microservices") {
     Container(userService, "User Service", "NestJS + TypeORM", "Serviço de usuários — Porta 3001. Conecta ao Postgres Users. Docker")
     Container(orderService, "Order Service", "NestJS + TypeORM", "Serviço de pedidos — Porta 3002. Publica eventos no RabbitMQ. Docker")
+    Container(paymentService, "Payment Service", "NestJS + TypeORM", "Serviço de pagamentos — Porta 3003. Event-driven via RabbitMQ. Docker")
   }
 
   Container_Boundary(infra, "Infraestrutura") {
     Container(postgresUsers, "Postgres Users DB", "PostgreSQL", "Banco de dados users_db — Porta 5432")
     Container(postgresOrders, "Postgres Orders DB", "PostgreSQL", "Banco de dados orders_db — Porta 5433")
+    Container(postgresPayments, "Postgres Payments DB", "PostgreSQL", "Banco de dados payments_db — Porta 5434")
     Container(rabbitmq, "RabbitMQ", "Message Broker (AMQP)", "Broker de mensagens — Portas 5672 / 15672")
   }
 }
@@ -21,14 +23,19 @@ System_Boundary(ecommerce, "Ecommerce Platform") {
 Rel(cliente, apiGateway, "Usa", "HTTP/REST")
 
 Rel(apiGateway, userService, "Chama endpoints do serviço de usuários (síncrono)", "TCP")
-Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "TCP")
+Rel(apiGateway, orderService, "Chama endpoints do serviço de pedidos (síncrono)", "RMQ")
+Rel(apiGateway, paymentService, "Chama endpoints do serviço de pagamentos (síncrono)", "RMQ")
 
 Rel(userService, postgresUsers, "Lê / Escreve", "PostgreSQL")
 Rel(orderService, postgresOrders, "Lê / Escreve", "PostgreSQL")
+Rel(paymentService, postgresPayments, "Lê / Escreve", "PostgreSQL")
 
-Rel(orderService, rabbitmq, "Publica eventos de domínio (e.g. OrderCreated)", "AMQP")
-Rel(apiGateway, rabbitmq, "(Opcional) Publica/consome integrações", "AMQP")
+Rel(orderService, rabbitmq, "Publica eventos de domínio (order.created.accepted)", "AMQP")
+Rel(paymentService, rabbitmq, "Consome eventos de pedidos (order.created.accepted)", "AMQP")
+Rel(paymentService, rabbitmq, "Publica eventos de pagamento (payment.completed/failed)", "AMQP")
+Rel(orderService, rabbitmq, "Consome eventos de pagamento para atualizar status", "AMQP")
 
 %% Observações:
 %% - `API Gateway` expõe APIs HTTP e também pode operar como adaptador AMQP para integrações.
 %% - Cada serviço está empacotado em Docker e se comunica de forma síncrona com o gateway.
+%% - Payment Service implementa event-driven architecture: escuta order.created.accepted e publica payment events.
