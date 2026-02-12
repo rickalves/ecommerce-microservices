@@ -15,6 +15,7 @@
         "migration:revert": "pnpm typeorm migration:revert -d src/infrastructure/database/data-source.ts"
     },
     "dependencies": {
+        "@ecommerce/observability": "workspace:*",
         "@ecommerce/shared": "workspace:*",
         "@nestjs/common": "^11.1.12",
         "@nestjs/core": "^11.1.12",

@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@ecommerce/shared": "workspace:*",
+        "@ecommerce/observability": "workspace:*",
         "@nestjs/common": "^11.1.12",
         "@nestjs/core": "^11.1.12",
         "@nestjs/jwt": "^11.0.2",

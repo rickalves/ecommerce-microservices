@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
@@ -10,8 +11,22 @@ import { TypeOrmPaymentRepository } from './infrastructure/database/repositories
 import { PAYMENT_REPOSITORY } from './domain/repositories/payment.repository.interface';
 import { PaymentEntity } from './infrastructure/database/entities/payment.entity';
 
+// Observability
+import {
+    LoggerModule,
+    LoggerInterceptor,
+    CorrelationModule,
+    CorrelationInterceptor,
+    HealthModule,
+} from '@ecommerce/observability';
+
 @Module({
     imports: [
+        // Observability modules
+        LoggerModule.forRoot({ serviceName: 'payment-service' }),
+        CorrelationModule,
+        HealthModule,
+
         TypeOrmModule.forFeature([PaymentEntity]),
         ClientsModule.register([
             {
@@ -35,6 +50,14 @@ import { PaymentEntity } from './infrastructure/database/entities/payment.entity
         {
             provide: PAYMENT_REPOSITORY,
             useClass: TypeOrmPaymentRepository,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LoggerInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: CorrelationInterceptor,
         },
     ],
 })

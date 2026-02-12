@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
@@ -10,8 +11,22 @@ import { TypeOrmOrderRepository } from './infrastructure/database/repositories/t
 import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
 import { OrderEntity } from './infrastructure/database/entities/order.entity';
 
+// Observability
+import {
+    LoggerModule,
+    LoggerInterceptor,
+    CorrelationModule,
+    CorrelationInterceptor,
+    HealthModule,
+} from '@ecommerce/observability';
+
 @Module({
     imports: [
+        // Observability modules
+        LoggerModule.forRoot({ serviceName: 'order-service' }),
+        CorrelationModule,
+        HealthModule,
+
         TypeOrmModule.forFeature([OrderEntity]),
         ClientsModule.register([
             {
@@ -35,6 +50,14 @@ import { OrderEntity } from './infrastructure/database/entities/order.entity';
         {
             provide: ORDER_REPOSITORY,
             useClass: TypeOrmOrderRepository,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LoggerInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: CorrelationInterceptor,
         },
     ],
 })

@@ -1,10 +1,17 @@
-import { NestFactory } from '@nestjs/core';
+import {NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module';
+import { LoggerService } from '@ecommerce/observability';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true,
+    });
+
+    // Configurar logger customizado
+    const logger = app.get(LoggerService);
+    app.useLogger(logger);
 
     // Connect to order_queue for direct commands
     app.connectMicroservice<MicroserviceOptions>({
@@ -31,7 +38,10 @@ async function bootstrap() {
     });
 
     await app.startAllMicroservices();
-    console.log('Order Service is listening on RabbitMQ - order_queue and order_events');
+    logger.info('Order Service is listening on RabbitMQ - order_queue and order_events');
+    logger.info('Health check available on port 3002/health');
+
+    await app.listen(3002, '0.0.0.0');
 }
 
 bootstrap();

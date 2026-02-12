@@ -3,9 +3,16 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { LoggerService } from '@ecommerce/observability';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true,
+    });
+
+    // Configurar logger customizado
+    const logger = app.get(LoggerService);
+    app.useLogger(logger);
 
     app.useGlobalPipes(
         new ValidationPipe({
@@ -42,8 +49,9 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
 
     await app.listen(3000, '0.0.0.0');
-    console.log('API Gateway is running on http://localhost:3000');
-    console.log('Swagger UI available at http://localhost:3000/api/docs');
+    logger.info('API Gateway is running on http://localhost:3000');
+    logger.info('Swagger UI available at http://localhost:3000/api/docs');
+    logger.info('Health check available at http://localhost:3000/health');
 }
 
 bootstrap();

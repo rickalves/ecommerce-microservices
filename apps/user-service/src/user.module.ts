@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UserController } from './presentation/controllers/user.controller';
@@ -10,8 +11,23 @@ import { USER_REPOSITORY } from './domain/repositories/user.repository.interface
 import { UserEntity } from './infrastructure/database/entities/user.entity';
 import { PasswordService } from './domain/services/password.service';
 
+// Observability
+import {
+    LoggerModule,
+    LoggerInterceptor,
+    CorrelationModule,
+    HealthModule,
+} from '@ecommerce/observability';
+
 @Module({
-    imports: [TypeOrmModule.forFeature([UserEntity])],
+    imports: [
+        // Observability modules
+        LoggerModule.forRoot({ serviceName: 'user-service' }),
+        CorrelationModule,
+        HealthModule,
+
+        TypeOrmModule.forFeature([UserEntity]),
+    ],
     controllers: [UserController],
     providers: [
         CreateUserUseCase,
@@ -21,6 +37,10 @@ import { PasswordService } from './domain/services/password.service';
         {
             provide: USER_REPOSITORY,
             useClass: TypeOrmUserRepository,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LoggerInterceptor,
         },
     ],
 })

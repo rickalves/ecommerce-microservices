@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { UsersController } from './users/users.controller';
@@ -8,8 +8,22 @@ import { PaymentsController } from './payments/payments.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
+// Observability
+import {
+    LoggerModule,
+    LoggerInterceptor,
+    CorrelationModule,
+    CorrelationMiddleware,
+    HealthModule,
+} from '@ecommerce/observability';
+
 @Module({
     imports: [
+        // Observability modules
+        LoggerModule.forRoot({ serviceName: 'api-gateway' }),
+        CorrelationModule,
+        HealthModule,
+
         ClientsModule.register([
             {
                 name: 'USER_SERVICE',
@@ -47,6 +61,16 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
         },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LoggerInterceptor,
+        },
     ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+        consumer
+            .apply(CorrelationMiddleware)
+            .forRoutes('*');
+    }
+}

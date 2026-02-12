@@ -2,9 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module';
+import { LoggerService } from '@ecommerce/observability';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true,
+    });
+
+    // Configurar logger customizado
+    const logger = app.get(LoggerService);
+    app.useLogger(logger);
 
     // Connect to payment_queue for direct commands
     app.connectMicroservice<MicroserviceOptions>({
@@ -31,7 +38,10 @@ async function bootstrap() {
     });
 
     await app.startAllMicroservices();
-    console.log('Payment Service is listening on RabbitMQ - payment_queue and payment_events');
+    logger.info('Payment Service is listening on RabbitMQ - payment_queue and payment_events');
+    logger.info('Health check available on port 3003/health');
+
+    await app.listen(3003, '0.0.0.0');
 }
 
 bootstrap();
