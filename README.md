@@ -249,6 +249,13 @@ Resposta: `{ accessToken, refreshToken }`
 - Esquemas de dados e validações
 - Suporte para autenticação Bearer Token
 
+**Documentação Técnica:**
+- [Arquitetura](./docs/ARQUITETURA.md) - Visão geral da arquitetura do sistema
+- [Comandos](./docs/COMANDOS.md) - Guia de comandos úteis
+- [Exemplos](./docs/EXEMPLOS.md) - Exemplos práticos de uso
+- [Diagramas C4](./docs/) - Diagramas de arquitetura (Context, Container, Component)
+- [ADRs](./docs/adr/) - Architecture Decision Records (decisões arquiteturais)
+
 ## 🧪 Testando a API
 
 ### Opção 1: Usando Swagger UI (Recomendado)
@@ -437,10 +444,11 @@ docker exec -it postgres-payments psql -U payment_service -d payments_db
 - [x] Implementar autenticação JWT completa
 - [x] Adicionar Swagger UI para documentação
 - [x] Configurar RabbitMQ para mensageria
+- [x] Implementar event-driven communication com RabbitMQ
 - [x] Implementar testes unitários e E2E
 - [x] Implementar CI/CD com GitHub Actions
 - [x] Implementar circuit breaker
-- [ ] Adicionar logging centralizado
-- [ ] Implementar event-driven communication com RabbitMQ
+- [ ] Implementar observabilidade completa (logs estruturados, métricas, traces) - Ver [ADR-001](./docs/adr/001-observabilidade-arquitetura-event-driven.md)
 - [ ] Adicionar rate limiting
-- [ ] Implementar health checks
+- [ ] Implementar health checks com @nestjs/terminus
+- [ ] Adicionar versionamento de APIs e eventos
