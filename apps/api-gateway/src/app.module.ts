@@ -30,7 +30,7 @@ import {
                 transport: Transport.TCP,
                 options: {
                     host: process.env.USER_SERVICE_HOST || 'user-service',
-                    port: Number(process.env.USER_SERVICE_PORT) || 3001,
+                    port: Number(process.env.USER_SERVICE_PORT) || 4001, // Porta TCP do microservice
                 },
             },
             {
