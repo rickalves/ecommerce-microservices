@@ -16,18 +16,22 @@ async function bootstrap() {
         },
     });
 
-    // Connect to events queue for domain events
+    // Connect to events exchange for domain events
     app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
             urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'events',
-            queueOptions: { durable: true },
+            queue: 'payment_events',
+            queueOptions: {
+                durable: true,
+            },
+            noAck: false,
+            prefetchCount: 1,
         },
     });
 
     await app.startAllMicroservices();
-    console.log('Payment Service is listening on RabbitMQ - payment_queue and events');
+    console.log('Payment Service is listening on RabbitMQ - payment_queue and payment_events');
 }
 
 bootstrap();

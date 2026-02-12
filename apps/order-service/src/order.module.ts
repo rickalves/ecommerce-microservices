@@ -19,8 +19,10 @@ import { OrderEntity } from './infrastructure/database/entities/order.entity';
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: 'events',
-                    queueOptions: { durable: true },
+                    queue: 'payment_events',  // Publica para a fila do payment-service
+                    queueOptions: {
+                        durable: true,
+                    },
                 },
             },
         ]),
