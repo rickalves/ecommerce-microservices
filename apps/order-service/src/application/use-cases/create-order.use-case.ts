@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateOrderDto } from '@ecommerce/shared';
+import { CreateOrderDto, OrderCreatedAcceptedEvent } from '@ecommerce/shared';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { Order } from '../../domain/entities/order.entity';
@@ -20,10 +20,11 @@ export class CreateOrderUseCase {
 
         // publish accepted event (fire-and-forget) with correlationId
         try {
-            this.eventBus.emit('order.created.accepted', {
+            const event: OrderCreatedAcceptedEvent = {
                 correlationId: saved.id,
                 order: saved,
-            });
+            };
+            this.eventBus.emit('order.created.accepted', event);
         } catch (_) {
             // swallow to avoid failing creation on event publish issues
         }

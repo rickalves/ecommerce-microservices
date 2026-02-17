@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreatePaymentDto } from '@ecommerce/shared';
+import { CreatePaymentDto, PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent } from '@ecommerce/shared';
 import { ClientProxy } from '@nestjs/microservices';
 
 import { Payment } from '../../domain/entities/payment.entity';
@@ -32,10 +32,11 @@ export class ProcessPaymentUseCase {
         const saved = await this.paymentRepository.save(payment);
 
         // Publica evento de pagamento iniciado
-        this.eventBus.emit('payment.initiated', {
+        const initiatedEvent: PaymentInitiatedEvent = {
             correlationId: saved.id,
             payment: saved,
-        });
+        };
+        this.eventBus.emit('payment.initiated', initiatedEvent);
 
         // Simula processamento do pagamento (em produção, integraria com gateway de pagamento)
         try {
@@ -53,33 +54,36 @@ export class ProcessPaymentUseCase {
                 await this.paymentRepository.save(saved);
 
                 // Publica evento de pagamento completado
-                this.eventBus.emit('payment.completed', {
+                const completedEvent: PaymentCompletedEvent = {
                     correlationId: saved.id,
                     orderId: saved.orderId,
                     payment: saved,
-                });
+                };
+                this.eventBus.emit('payment.completed', completedEvent);
             } else {
                 saved.fail();
                 await this.paymentRepository.save(saved);
 
                 // Publica evento de pagamento falhou
-                this.eventBus.emit('payment.failed', {
+                const failedEvent: PaymentFailedEvent = {
                     correlationId: saved.id,
                     orderId: saved.orderId,
                     payment: saved,
                     reason: 'Payment gateway declined the transaction',
-                });
+                };
+                this.eventBus.emit('payment.failed', failedEvent);
             }
         } catch (error) {
             saved.fail();
             await this.paymentRepository.save(saved);
 
-            this.eventBus.emit('payment.failed', {
+            const failedEvent: PaymentFailedEvent = {
                 correlationId: saved.id,
                 orderId: saved.orderId,
                 payment: saved,
                 reason: (error as Error).message,
-            });
+            };
+            this.eventBus.emit('payment.failed', failedEvent);
         }
 
         return saved;

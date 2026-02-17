@@ -1,6 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { Payload, EventPattern } from '@nestjs/microservices';
 import { CreatePaymentDto } from '@ecommerce/shared';
+import type { OrderCreatedAcceptedEvent, OrderCancelledEvent } from '@ecommerce/shared';
 
 import { ProcessPaymentUseCase } from '../../application/use-cases/process-payment.use-case';
 import { GetPaymentUseCase } from '../../application/use-cases/get-payment.use-case';
@@ -19,7 +20,7 @@ export class PaymentController {
     ) {}
 
     @EventPattern('order.created.accepted')
-    async handleOrderCreatedAccepted(@Payload() data: any) {
+    async handleOrderCreatedAccepted(@Payload() data: OrderCreatedAcceptedEvent) {
         // Quando um pedido é aceito, cria um pagamento automaticamente
         const { order } = data;
         const createPaymentDto: CreatePaymentDto = {
@@ -43,7 +44,7 @@ export class PaymentController {
     }
 
     @EventPattern('order.cancelled')
-    async handleOrderCancelled(@Payload() data: any) {
+    async handleOrderCancelled(@Payload() data: OrderCancelledEvent) {
         // Quando um pedido é cancelado, tenta reembolsar o pagamento se existir
         const { orderId } = data;
         const payment = await this.getPaymentUseCase.getPaymentByOrder(orderId);

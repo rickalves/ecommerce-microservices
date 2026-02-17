@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { PaymentRefundedEvent } from '@ecommerce/shared';
 
 import { Payment } from '../../domain/entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '../../domain/repositories/payment.repository.interface';
@@ -24,11 +25,12 @@ export class RefundPaymentUseCase {
         const updated = await this.paymentRepository.save(payment);
 
         // Publica evento de reembolso
-        this.eventBus.emit('payment.refunded', {
+        const refundedEvent: PaymentRefundedEvent = {
             correlationId: updated.id,
             orderId: updated.orderId,
             payment: updated,
-        });
+        };
+        this.eventBus.emit('payment.refunded', refundedEvent);
 
         return updated;
     }

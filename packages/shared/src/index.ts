@@ -14,3 +14,7 @@ export * from './domain/order.interface';
 export * from './domain/jwt-payload.interface';
 export * from './domain/payment.interface';
 
+// Domain Events
+export * from './events/order.events';
+export * from './events/payment.events';
+
