@@ -1,23 +1,74 @@
 services:
-    api-gateway:
-        build:
-            context: .
-            dockerfile: apps/api-gateway/Dockerfile
-        container_name: api-gateway
+    # === Camada 1: Infraestrutura (sem dependências) ===
+    postgres-users:
+        image: postgres:16-alpine
+        container_name: postgres-users
         ports:
-            - '3000:3000'
-        depends_on:
-            - user-service
-            - order-service
-            - payment-service
+            - '5432:5432'
         environment:
-            - NODE_ENV=development
-            - HOST=0.0.0.0
-            - PORT=3000
-            - USER_SERVICE_URL=http://user-service:3001
-            - ORDER_SERVICE_URL=http://order-service:3002
-            - PAYMENT_SERVICE_URL=http://payment-service:3003
+            - POSTGRES_USER=user_service
+            - POSTGRES_PASSWORD=user_service_pass
+            - POSTGRES_DB=users_db
+        volumes:
+            - postgres_users_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U user_service -d users_db']
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
+    postgres-orders:
+        image: postgres:16-alpine
+        container_name: postgres-orders
+        ports:
+            - '5433:5432'
+        environment:
+            - POSTGRES_USER=order_service
+            - POSTGRES_PASSWORD=order_service_pass
+            - POSTGRES_DB=orders_db
+        volumes:
+            - postgres_orders_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U order_service -d orders_db']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    postgres-payments:
+        image: postgres:16-alpine
+        container_name: postgres-payments
+        ports:
+            - '5434:5432'
+        environment:
+            - POSTGRES_USER=payment_service
+            - POSTGRES_PASSWORD=payment_service_pass
+            - POSTGRES_DB=payments_db
+        volumes:
+            - postgres_payments_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U payment_service -d payments_db']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    rabbitmq:
+        image: rabbitmq:4.2.3-management
+        container_name: rabbitmq
+        ports:
+            - '5672:5672'
+            - '15672:15672'
+        environment:
+            - RABBITMQ_DEFAULT_USER=guest
+            - RABBITMQ_DEFAULT_PASS=guest
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        healthcheck:
+            test: ['CMD-SHELL', 'rabbitmq-diagnostics -q ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # === Camada 2: Serviços de domínio (dependem da infraestrutura) ===
     user-service:
         build:
             context: .
@@ -79,73 +130,25 @@ services:
             - DB_DATABASE=payments_db
             - RMQ_URL=amqp://rabbitmq:5672
 
-    postgres-users:
-        image: postgres:16-alpine
-        container_name: postgres-users
+    # === Camada 3: Gateway (ponto de entrada) ===
+    api-gateway:
+        build:
+            context: .
+            dockerfile: apps/api-gateway/Dockerfile
+        container_name: api-gateway
         ports:
-            - '5432:5432'
+            - '3000:3000'
+        depends_on:
+            - user-service
+            - order-service
+            - payment-service
         environment:
-            - POSTGRES_USER=user_service
-            - POSTGRES_PASSWORD=user_service_pass
-            - POSTGRES_DB=users_db
-        volumes:
-            - postgres_users_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U user_service']
-            interval: 10s
-            timeout: 5s
-            retries: 5
-
-    postgres-orders:
-        image: postgres:16-alpine
-        container_name: postgres-orders
-        ports:
-            - '5433:5432'
-        environment:
-            - POSTGRES_USER=order_service
-            - POSTGRES_PASSWORD=order_service_pass
-            - POSTGRES_DB=orders_db
-        volumes:
-            - postgres_orders_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U order_service']
-            interval: 10s
-            timeout: 5s
-            retries: 5
-
-    postgres-payments:
-        image: postgres:16-alpine
-        container_name: postgres-payments
-        ports:
-            - '5434:5432'
-        environment:
-            - POSTGRES_USER=payment_service
-            - POSTGRES_PASSWORD=payment_service_pass
-            - POSTGRES_DB=payments_db
-        volumes:
-            - postgres_payments_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U payment_service']
-            interval: 10s
-            timeout: 5s
-            retries: 5
-
-    rabbitmq:
-        image: rabbitmq:3-management
-        container_name: rabbitmq
-        ports:
-            - '5672:5672'
-            - '15672:15672'
-        environment:
-            - RABBITMQ_DEFAULT_USER=guest
-            - RABBITMQ_DEFAULT_PASS=guest
-        volumes:
-            - rabbitmq_data:/var/lib/rabbitmq
-        healthcheck:
-            test: ['CMD-SHELL', 'rabbitmq-diagnostics -q ping']
-            interval: 10s
-            timeout: 5s
-            retries: 5
+            - NODE_ENV=development
+            - HOST=0.0.0.0
+            - PORT=3000
+            - USER_SERVICE_URL=http://user-service:3001
+            - ORDER_SERVICE_URL=http://order-service:3002
+            - PAYMENT_SERVICE_URL=http://payment-service:3003
 
 volumes:
     postgres_users_data:
