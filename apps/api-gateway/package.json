@@ -13,6 +13,7 @@
     "dependencies": {
         "@ecommerce/shared": "workspace:*",
         "@ecommerce/observability": "workspace:*",
+        "@nestjs/axios": "^4.0.1",
         "@nestjs/common": "^11.1.12",
         "@nestjs/core": "^11.1.12",
         "@nestjs/jwt": "^11.0.2",
@@ -20,6 +21,7 @@
         "@nestjs/passport": "^11.0.5",
         "@nestjs/platform-express": "^11.1.12",
         "@nestjs/swagger": "^11.2.6",
+        "axios": "^1.7.9",
         "bcrypt": "^6.0.0",
         "passport": "^0.7.0",
         "passport-jwt": "^4.0.1",

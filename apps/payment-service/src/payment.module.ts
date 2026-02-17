@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { PaymentController } from './presentation/controllers/payment.controller';
+import { PaymentHttpController } from './presentation/controllers/payment-http.controller';
 import { ProcessPaymentUseCase } from './application/use-cases/process-payment.use-case';
 import { GetPaymentUseCase } from './application/use-cases/get-payment.use-case';
 import { RefundPaymentUseCase } from './application/use-cases/refund-payment.use-case';
@@ -42,7 +43,7 @@ import {
             },
         ]),
     ],
-    controllers: [PaymentController],
+    controllers: [PaymentController, PaymentHttpController],
     providers: [
         ProcessPaymentUseCase,
         GetPaymentUseCase,

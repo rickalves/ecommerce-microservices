@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { OrderController } from './presentation/controllers/order.controller';
+import { OrderHttpController } from './presentation/controllers/order-http.controller';
 import { CreateOrderUseCase } from './application/use-cases/create-order.use-case';
 import { GetOrderUseCase } from './application/use-cases/get-order.use-case';
 import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-status.use-case';
@@ -42,7 +43,7 @@ import {
             },
         ]),
     ],
-    controllers: [OrderController],
+    controllers: [OrderController, OrderHttpController],
     providers: [
         CreateOrderUseCase,
         GetOrderUseCase,

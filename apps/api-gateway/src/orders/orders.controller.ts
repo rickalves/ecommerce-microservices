@@ -10,6 +10,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { HttpService } from '@nestjs/axios';
 import {
     ApiTags,
     ApiOperation,
@@ -26,17 +27,26 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @ApiBearerAuth('JWT-auth')
 @Controller('orders')
 export class OrdersController {
-    constructor(@Inject('ORDER_SERVICE') private readonly orderService: ClientProxy) {}
+    private readonly orderServiceUrl: string;
+
+    constructor(
+        private readonly httpService: HttpService,
+        @Inject('ORDER_SERVICE_EVENTS') private readonly orderServiceEvents: ClientProxy
+    ) {
+        this.orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://order-service:3002';
+    }
+
+    // ==================== COMMANDS (Assíncrono via RabbitMQ) ====================
 
     @Post()
     @ApiOperation({
         summary: 'Criar novo pedido',
-        description: 'Cria um novo pedido para o usuário autenticado com lista de itens',
+        description: 'Cria um novo pedido para o usuário autenticado com lista de itens (assíncrono)',
     })
     @ApiBody({ type: CreateOrderDto })
     @ApiResponse({
         status: 201,
-        description: 'Pedido criado com sucesso',
+        description: 'Pedido aceito para processamento',
         type: OrderResponseDto,
     })
     @ApiResponse({
@@ -56,8 +66,8 @@ export class OrdersController {
         try {
             // Override userId from token (don't trust client input)
             const orderPayload = { ...createOrderDto, userId };
-            // publish event (fire-and-forget) to allow async processing
-            this.orderService.emit('order.created', orderPayload);
+            // ⚡ Assíncrono: publish event (fire-and-forget)
+            this.orderServiceEvents.emit('order.created', orderPayload);
             return {
                 status: 'accepted',
                 message: 'Order creation request accepted',
@@ -68,10 +78,152 @@ export class OrdersController {
         }
     }
 
+    @Patch(':id/confirm')
+    @ApiOperation({
+        summary: 'Confirmar pedido',
+        description: 'Muda o status do pedido de PENDING para CONFIRMED (assíncrono)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'ID do pedido a ser confirmado',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Confirmação aceita para processamento',
+        type: OrderResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Não foi possível confirmar o pedido (status inválido)',
+        schema: {
+            example: {
+                statusCode: 400,
+                message: 'Cannot confirm order in current status',
+            },
+        },
+    })
+    async confirmOrder(@Param('id') id: string) {
+        try {
+            this.orderServiceEvents.emit('order.confirm', id);
+            return { status: 'accepted', message: 'Confirm order request accepted' };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new HttpException(message || 'Failed to confirm order', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Patch(':id/ship')
+    @ApiOperation({
+        summary: 'Enviar pedido',
+        description: 'Muda o status do pedido de CONFIRMED para SHIPPED (assíncrono)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'ID do pedido a ser enviado',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Envio aceito para processamento',
+        type: OrderResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Não foi possível enviar o pedido (status inválido)',
+        schema: {
+            example: {
+                statusCode: 400,
+                message: 'Cannot ship order in current status',
+            },
+        },
+    })
+    async shipOrder(@Param('id') id: string) {
+        try {
+            this.orderServiceEvents.emit('order.ship', id);
+            return { status: 'accepted', message: 'Ship order request accepted' };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new HttpException(message || 'Failed to ship order', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Patch(':id/deliver')
+    @ApiOperation({
+        summary: 'Entregar pedido',
+        description: 'Muda o status do pedido de SHIPPED para DELIVERED (assíncrono)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'ID do pedido a ser entregue',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Entrega aceita para processamento',
+        type: OrderResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Não foi possível marcar como entregue (status inválido)',
+        schema: {
+            example: {
+                statusCode: 400,
+                message: 'Cannot deliver order in current status',
+            },
+        },
+    })
+    async deliverOrder(@Param('id') id: string) {
+        try {
+            this.orderServiceEvents.emit('order.deliver', id);
+            return { status: 'accepted', message: 'Deliver order request accepted' };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new HttpException(message || 'Failed to deliver order', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Patch(':id/cancel')
+    @ApiOperation({
+        summary: 'Cancelar pedido',
+        description: 'Cancela um pedido, mudando seu status para CANCELLED (assíncrono)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'ID do pedido a ser cancelado',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Cancelamento aceito para processamento',
+        type: OrderResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Não foi possível cancelar o pedido',
+        schema: {
+            example: {
+                statusCode: 400,
+                message: 'Cannot cancel order',
+            },
+        },
+    })
+    async cancelOrder(@Param('id') id: string) {
+        try {
+            this.orderServiceEvents.emit('order.cancel', id);
+            return { status: 'accepted', message: 'Cancel order request accepted' };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new HttpException(message || 'Failed to cancel order', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // ==================== QUERIES (Síncrono via HTTP) ====================
+
     @Get(':id')
     @ApiOperation({
         summary: 'Buscar pedido por ID',
-        description: 'Retorna os dados completos de um pedido específico',
+        description: 'Retorna os dados completos de um pedido específico (síncrono via HTTP)',
     })
     @ApiParam({
         name: 'id',
@@ -95,21 +247,24 @@ export class OrdersController {
     })
     async getOrder(@Param('id') id: string) {
         try {
-            const order = await firstValueFrom(this.orderService.send<OrderResponseDto, string>('order.get', id));
-            if (!order) {
+            // ✅ Síncrono: HTTP direto
+            const response = await firstValueFrom(
+                this.httpService.get<OrderResponseDto>(`${this.orderServiceUrl}/orders/${id}`)
+            );
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
                 throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
             }
-            return order;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(message || 'Order not found', HttpStatus.NOT_FOUND);
+            const message = error.response?.data?.message || error.message || 'Failed to fetch order';
+            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @Get('user/:userId')
     @ApiOperation({
         summary: 'Buscar pedidos por usuário',
-        description: 'Retorna todos os pedidos de um usuário específico',
+        description: 'Retorna todos os pedidos de um usuário específico (síncrono via HTTP)',
     })
     @ApiParam({
         name: 'userId',
@@ -127,21 +282,21 @@ export class OrdersController {
     })
     async getOrdersByUser(@Param('userId') userId: string) {
         try {
-            const orders = await firstValueFrom(this.orderService.send<OrderResponseDto[], string>('order.get_by_user', userId));
-            return orders;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(
-                message || 'Failed to fetch orders',
-                HttpStatus.INTERNAL_SERVER_ERROR
+            // ✅ Síncrono: HTTP direto
+            const response = await firstValueFrom(
+                this.httpService.get<OrderResponseDto[]>(`${this.orderServiceUrl}/orders/user/${userId}`)
             );
+            return response.data;
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Failed to fetch orders';
+            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @Get()
     @ApiOperation({
         summary: 'Listar todos os pedidos',
-        description: 'Retorna uma lista com todos os pedidos do sistema',
+        description: 'Retorna uma lista com todos os pedidos do sistema (síncrono via HTTP)',
     })
     @ApiResponse({
         status: 200,
@@ -154,154 +309,14 @@ export class OrdersController {
     })
     async getAllOrders() {
         try {
-            const orders = await firstValueFrom(this.orderService.send<OrderResponseDto[], any>('order.get_all', {}));
-            return orders;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(
-                message || 'Failed to fetch orders',
-                HttpStatus.INTERNAL_SERVER_ERROR
+            // ✅ Síncrono: HTTP direto
+            const response = await firstValueFrom(
+                this.httpService.get<OrderResponseDto[]>(`${this.orderServiceUrl}/orders`)
             );
-        }
-    }
-
-    @Patch(':id/confirm')
-    @ApiOperation({
-        summary: 'Confirmar pedido',
-        description: 'Muda o status do pedido de PENDING para CONFIRMED',
-    })
-    @ApiParam({
-        name: 'id',
-        description: 'ID do pedido a ser confirmado',
-        example: '550e8400-e29b-41d4-a716-446655440000',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Pedido confirmado com sucesso',
-        type: OrderResponseDto,
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Não foi possível confirmar o pedido (status inválido)',
-        schema: {
-            example: {
-                statusCode: 400,
-                message: 'Cannot confirm order in current status',
-            },
-        },
-    })
-    async confirmOrder(@Param('id') id: string) {
-        try {
-            this.orderService.emit('order.confirm', id);
-            return { status: 'accepted', message: 'Confirm order request accepted' };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(message || 'Failed to confirm order', HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @Patch(':id/ship')
-    @ApiOperation({
-        summary: 'Enviar pedido',
-        description: 'Muda o status do pedido de CONFIRMED para SHIPPED',
-    })
-    @ApiParam({
-        name: 'id',
-        description: 'ID do pedido a ser enviado',
-        example: '550e8400-e29b-41d4-a716-446655440000',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Pedido marcado como enviado',
-        type: OrderResponseDto,
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Não foi possível enviar o pedido (status inválido)',
-        schema: {
-            example: {
-                statusCode: 400,
-                message: 'Cannot ship order in current status',
-            },
-        },
-    })
-    async shipOrder(@Param('id') id: string) {
-        try {
-            this.orderService.emit('order.ship', id);
-            return { status: 'accepted', message: 'Ship order request accepted' };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(message || 'Failed to ship order', HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @Patch(':id/deliver')
-    @ApiOperation({
-        summary: 'Entregar pedido',
-        description: 'Muda o status do pedido de SHIPPED para DELIVERED',
-    })
-    @ApiParam({
-        name: 'id',
-        description: 'ID do pedido a ser entregue',
-        example: '550e8400-e29b-41d4-a716-446655440000',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Pedido marcado como entregue',
-        type: OrderResponseDto,
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Não foi possível marcar como entregue (status inválido)',
-        schema: {
-            example: {
-                statusCode: 400,
-                message: 'Cannot deliver order in current status',
-            },
-        },
-    })
-    async deliverOrder(@Param('id') id: string) {
-        try {
-            this.orderService.emit('order.deliver', id);
-            return { status: 'accepted', message: 'Deliver order request accepted' };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(message || 'Failed to deliver order', HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @Patch(':id/cancel')
-    @ApiOperation({
-        summary: 'Cancelar pedido',
-        description: 'Cancela um pedido, mudando seu status para CANCELLED',
-    })
-    @ApiParam({
-        name: 'id',
-        description: 'ID do pedido a ser cancelado',
-        example: '550e8400-e29b-41d4-a716-446655440000',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Pedido cancelado com sucesso',
-        type: OrderResponseDto,
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Não foi possível cancelar o pedido',
-        schema: {
-            example: {
-                statusCode: 400,
-                message: 'Cannot cancel order',
-            },
-        },
-    })
-    async cancelOrder(@Param('id') id: string) {
-        try {
-            this.orderService.emit('order.cancel', id);
-            return { status: 'accepted', message: 'Cancel order request accepted' };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new HttpException(message || 'Failed to cancel order', HttpStatus.BAD_REQUEST);
+            return response.data;
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Failed to fetch orders';
+            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

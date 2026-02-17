@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { HttpModule } from '@nestjs/axios';
 
 import { UsersController } from './users/users.controller';
 import { OrdersController } from './orders/orders.controller';
@@ -24,17 +25,24 @@ import {
         CorrelationModule,
         HealthModule,
 
+        // HTTP Client para queries síncronas
+        HttpModule.register({
+            timeout: 5000,
+            maxRedirects: 5,
+        }),
+
+        // RabbitMQ para commands assíncronos
         ClientsModule.register([
             {
                 name: 'USER_SERVICE',
                 transport: Transport.TCP,
                 options: {
                     host: process.env.USER_SERVICE_HOST || 'user-service',
-                    port: Number(process.env.USER_SERVICE_PORT) || 4001, // Porta TCP do microservice
+                    port: Number(process.env.USER_SERVICE_PORT) || 4001,
                 },
             },
             {
-                name: 'ORDER_SERVICE',
+                name: 'ORDER_SERVICE_EVENTS',
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
@@ -43,7 +51,7 @@ import {
                 },
             },
             {
-                name: 'PAYMENT_SERVICE',
+                name: 'PAYMENT_SERVICE_EVENTS',
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
