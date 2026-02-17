@@ -1,11 +1,15 @@
 import { Controller } from '@nestjs/common';
-import { Payload, EventPattern, MessagePattern } from '@nestjs/microservices';
+import { Payload, EventPattern } from '@nestjs/microservices';
 import { CreatePaymentDto } from '@ecommerce/shared';
 
 import { ProcessPaymentUseCase } from '../../application/use-cases/process-payment.use-case';
 import { GetPaymentUseCase } from '../../application/use-cases/get-payment.use-case';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment.use-case';
 
+/**
+ * RabbitMQ Event Handler para Commands assíncronos do Payment Service
+ * Queries síncronas são tratadas pelo PaymentHttpController
+ */
 @Controller()
 export class PaymentController {
     constructor(
@@ -31,46 +35,6 @@ export class PaymentController {
     @EventPattern('payment.create')
     async handlePaymentCreate(@Payload() createPaymentDto: CreatePaymentDto) {
         return this.processPaymentUseCase.execute(createPaymentDto);
-    }
-
-    @EventPattern('payment.get')
-    async getPayment(@Payload() paymentId: string) {
-        return this.getPaymentUseCase.execute(paymentId);
-    }
-
-    @MessagePattern('payment.get')
-    async getPaymentCommand(@Payload() paymentId: string) {
-        return this.getPaymentUseCase.execute(paymentId);
-    }
-
-    @EventPattern('payment.get_by_order')
-    async getPaymentByOrder(@Payload() orderId: string) {
-        return this.getPaymentUseCase.getPaymentByOrder(orderId);
-    }
-
-    @MessagePattern('payment.get_by_order')
-    async getPaymentByOrderCommand(@Payload() orderId: string) {
-        return this.getPaymentUseCase.getPaymentByOrder(orderId);
-    }
-
-    @EventPattern('payment.get_by_user')
-    async getPaymentsByUser(@Payload() userId: string) {
-        return this.getPaymentUseCase.getPaymentsByUser(userId);
-    }
-
-    @MessagePattern('payment.get_by_user')
-    async getPaymentsByUserCommand(@Payload() userId: string) {
-        return this.getPaymentUseCase.getPaymentsByUser(userId);
-    }
-
-    @EventPattern('payment.get_all')
-    async getAllPayments() {
-        return this.getPaymentUseCase.getAllPayments();
-    }
-
-    @MessagePattern('payment.get_all')
-    async getAllPaymentsCommand() {
-        return this.getPaymentUseCase.getAllPayments();
     }
 
     @EventPattern('payment.refund')
