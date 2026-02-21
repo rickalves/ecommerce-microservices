@@ -321,7 +321,7 @@ NODE_ENV=production pnpm dev
 
 ### Novos
 - `packages/observability/` (completo)
-- `docs/adr/001-observabilidade-arquitetura-event-driven.md`
+- `docs/adr/002-observabilidade-arquitetura-event-driven.md`
 - `docs/adr/README.md`
 
 ### Modificados

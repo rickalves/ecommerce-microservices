@@ -507,7 +507,7 @@ curl -X POST http://localhost:3000/orders \
 
 ## Referências
 
-- [ADR-001](../docs/adr/001-observabilidade-arquitetura-event-driven.md) - Decisão arquitetural completa
-- [FASE1-RESUMO](./FASE1-RESUMO.md) - Resumo da implementação
+- [ADR-002](../adr/002-observabilidade-arquitetura-event-driven.md) - Decisão arquitetural completa
+- [Fase 1 — Resumo](./fase1-resumo.md) - Resumo da implementação
 - [Pino Documentation](https://getpino.io/)
 - [NestJS Terminus](https://docs.nestjs.com/recipes/terminus)

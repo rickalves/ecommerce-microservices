@@ -90,8 +90,11 @@ Crie uma ADR quando:
 
 | # | Título | Status | Data |
 |---|--------|--------|------|
-| [001](./001-observabilidade-arquitetura-event-driven.md) | Implementação de Observabilidade em Arquitetura Event-Driven | Proposto | 2026-02-11 |
-
+| [001](./001-microservicos-eda-vs-arquitetura-em-camadas.md) | Microserviços com EDA vs Arquitetura em Camadas | Aceito | 2026-02-21 |
+| [002](./002-observabilidade-arquitetura-event-driven.md) | Implementação de Observabilidade em Arquitetura Event-Driven | Proposto | 2026-02-11 |
+| [003](./003-comunicacao-sincrona-vs-assincrona.md) | Comunicação Síncrona vs Assíncrona em Microserviços (CQRS simplificado) | Proposto | 2026-02-17 |
+| [004](./004-autenticacao-jwt-api-gateway.md) | Autenticação JWT Centralizada no API Gateway | Aceito | 2026-02-21 |
+| [005](./005-monorepo-turborepo-pnpm.md) | Estrutura Monorepo com Turborepo e pnpm Workspaces | Aceito | 2026-02-21 |
 ---
 
 **Referências:**

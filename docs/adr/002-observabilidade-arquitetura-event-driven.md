@@ -1,4 +1,4 @@
-# ADR 001: Implementação de Observabilidade em Arquitetura Event-Driven
+# ADR 002: Implementação de Observabilidade em Arquitetura Event-Driven
 
 **Data:** 2026-02-11
 **Status:** Proposto
