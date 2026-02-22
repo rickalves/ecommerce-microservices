@@ -18,3 +18,6 @@ export * from './domain/payment.interface';
 export * from './events/order.events';
 export * from './events/payment.events';
 
+// Messaging Config
+export * from './messaging/queue-config';
+

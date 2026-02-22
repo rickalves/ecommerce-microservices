@@ -3,42 +3,51 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module';
 import { LoggerService } from '@ecommerce/observability';
+import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
         bufferLogs: true,
     });
 
-    // Configurar logger customizado
     const logger = app.get(LoggerService);
     app.useLogger(logger);
 
-    // Connect to payment_queue for direct commands
+    const rmqUrl = process.env.RMQ_URL || 'amqp://rabbitmq:5672';
+
+    // Fila principal: recebe comandos do API Gateway e eventos do order-service
     app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
-            urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'payment_queue',
-            queueOptions: { durable: true },
+            urls: [rmqUrl],
+            queue: QUEUES.PAYMENT,
+            queueOptions: {
+                durable: true,
+                arguments: {
+                    'x-dead-letter-exchange': EXCHANGES.PAYMENT_DLX,
+                    'x-dead-letter-routing-key': QUEUES.PAYMENT_RETRY,
+                },
+            },
+            noAck: false,
+            prefetchCount: 10,
         },
     });
 
-    // Connect to events exchange for domain events
+    // Fila DLQ: consumer de mensagens que esgotaram as tentativas de retry
     app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
-            urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'payment_events',
-            queueOptions: {
-                durable: true,
-            },
+            urls: [rmqUrl],
+            queue: QUEUES.PAYMENT_DLQ,
+            queueOptions: { durable: true },
             noAck: false,
             prefetchCount: 1,
         },
     });
 
     await app.startAllMicroservices();
-    logger.info('Payment Service is listening on RabbitMQ - payment_queue and payment_events');
+    logger.info(`Payment Service listening on RabbitMQ queue: ${QUEUES.PAYMENT}`);
+    logger.info(`Payment Service DLQ consumer active on queue: ${QUEUES.PAYMENT_DLQ}`);
     logger.info('Health check available on port 3003/health');
 
     await app.listen(3003, '0.0.0.0');

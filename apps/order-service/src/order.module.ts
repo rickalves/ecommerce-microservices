@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { OrderController } from './presentation/controllers/order.controller';
+import { OrderDlqController } from './presentation/controllers/order-dlq.controller';
 import { OrderHttpController } from './presentation/controllers/order-http.controller';
 import { CreateOrderUseCase } from './application/use-cases/create-order.use-case';
 import { GetOrderUseCase } from './application/use-cases/get-order.use-case';
@@ -11,6 +12,8 @@ import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-s
 import { TypeOrmOrderRepository } from './infrastructure/database/repositories/typeorm-order.repository';
 import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
 import { OrderEntity } from './infrastructure/database/entities/order.entity';
+import { RabbitMQSetupService } from './infrastructure/messaging/rabbitmq-setup.service';
+import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 // Observability
 import {
@@ -35,19 +38,24 @@ import {
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: 'payment_events',  // Publica para a fila do payment-service
+                    queue: QUEUES.PAYMENT,  // Publica para a fila do payment-service
                     queueOptions: {
                         durable: true,
+                        arguments: {
+                            'x-dead-letter-exchange': EXCHANGES.PAYMENT_DLX,
+                            'x-dead-letter-routing-key': QUEUES.PAYMENT_RETRY,
+                        },
                     },
                 },
             },
         ]),
     ],
-    controllers: [OrderController, OrderHttpController],
+    controllers: [OrderController, OrderDlqController, OrderHttpController],
     providers: [
         CreateOrderUseCase,
         GetOrderUseCase,
         UpdateOrderStatusUseCase,
+        RabbitMQSetupService,
         {
             provide: ORDER_REPOSITORY,
             useClass: TypeOrmOrderRepository,

@@ -8,6 +8,7 @@ import { OrdersController } from './orders/orders.controller';
 import { PaymentsController } from './payments/payments.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 // Observability
 import {
@@ -46,8 +47,14 @@ import {
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: 'order_queue',
-                    queueOptions: { durable: true },
+                    queue: QUEUES.ORDER,
+                    queueOptions: {
+                        durable: true,
+                        arguments: {
+                            'x-dead-letter-exchange': EXCHANGES.ORDER_DLX,
+                            'x-dead-letter-routing-key': QUEUES.ORDER_RETRY,
+                        },
+                    },
                 },
             },
             {
@@ -55,8 +62,14 @@ import {
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: 'payment_queue',
-                    queueOptions: { durable: true },
+                    queue: QUEUES.PAYMENT,
+                    queueOptions: {
+                        durable: true,
+                        arguments: {
+                            'x-dead-letter-exchange': EXCHANGES.PAYMENT_DLX,
+                            'x-dead-letter-routing-key': QUEUES.PAYMENT_RETRY,
+                        },
+                    },
                 },
             },
         ]),

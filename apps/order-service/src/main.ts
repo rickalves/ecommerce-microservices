@@ -1,44 +1,53 @@
-import {NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module';
 import { LoggerService } from '@ecommerce/observability';
+import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
         bufferLogs: true,
     });
 
-    // Configurar logger customizado
     const logger = app.get(LoggerService);
     app.useLogger(logger);
 
-    // Connect to order_queue for direct commands
+    const rmqUrl = process.env.RMQ_URL || 'amqp://rabbitmq:5672';
+
+    // Fila principal: recebe comandos do API Gateway e eventos do payment-service
     app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
-            urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'order_queue',
-            queueOptions: { durable: true },
+            urls: [rmqUrl],
+            queue: QUEUES.ORDER,
+            queueOptions: {
+                durable: true,
+                arguments: {
+                    'x-dead-letter-exchange': EXCHANGES.ORDER_DLX,
+                    'x-dead-letter-routing-key': QUEUES.ORDER_RETRY,
+                },
+            },
+            noAck: false,
+            prefetchCount: 10,
         },
     });
 
-    // Connect to events exchange for domain events
+    // Fila DLQ: consumer de mensagens que esgotaram as tentativas de retry
     app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
-            urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-            queue: 'order_events',
-            queueOptions: {
-                durable: true,
-            },
+            urls: [rmqUrl],
+            queue: QUEUES.ORDER_DLQ,
+            queueOptions: { durable: true },
             noAck: false,
             prefetchCount: 1,
         },
     });
 
     await app.startAllMicroservices();
-    logger.info('Order Service is listening on RabbitMQ - order_queue and order_events');
+    logger.info(`Order Service listening on RabbitMQ queue: ${QUEUES.ORDER}`);
+    logger.info(`Order Service DLQ consumer active on queue: ${QUEUES.ORDER_DLQ}`);
     logger.info('Health check available on port 3002/health');
 
     await app.listen(3002, '0.0.0.0');
