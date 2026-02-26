@@ -24,7 +24,7 @@ import {
         // Observability modules
         LoggerModule.forRoot({ serviceName: 'user-service' }),
         CorrelationModule,
-        HealthModule,
+        HealthModule.forRoot({ database: true }),
 
         TypeOrmModule.forFeature([UserEntity]),
     ],

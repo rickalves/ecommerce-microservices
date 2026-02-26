@@ -29,7 +29,7 @@ import {
         // Observability modules
         LoggerModule.forRoot({ serviceName: 'order-service' }),
         CorrelationModule,
-        HealthModule,
+        HealthModule.forRoot({ database: true }),
 
         TypeOrmModule.forFeature([OrderEntity]),
         ClientsModule.register([

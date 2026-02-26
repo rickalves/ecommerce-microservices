@@ -29,7 +29,7 @@ import {
         // Observability modules
         LoggerModule.forRoot({ serviceName: 'payment-service' }),
         CorrelationModule,
-        HealthModule,
+        HealthModule.forRoot({ database: true }),
 
         TypeOrmModule.forFeature([PaymentEntity]),
         ClientsModule.register([
