@@ -13,13 +13,21 @@
         "lint": "turbo run lint",
         "lint:fix": "turbo run lint:fix",
         "format": "prettier --write .",
-        "test": "turbo run test"
+        "test": "turbo run test",
+        "coupling:validate": "depcruise --config .dependency-cruiser.cjs apps packages",
+        "coupling:metrics": "node scripts/coupling-metrics.mjs",
+        "coupling:metrics:json": "node scripts/coupling-metrics.mjs --json",
+        "coupling:fitness": "node scripts/arch-fitness.mjs",
+        "coupling:graph": "depcruise --config .dependency-cruiser.cjs --output-type dot apps packages | dot -T svg > docs/coupling-graph.svg",
+        "coupling:report": "depcruise --config .dependency-cruiser.cjs --output-type html apps packages > docs/coupling-report.html",
+        "coupling:ci": "pnpm coupling:fitness && pnpm coupling:validate"
     },
     "devDependencies": {
         "@ecommerce/typescript-config": "workspace:*",
         "@types/ms": "^2.1.0",
         "@typescript-eslint/eslint-plugin": "^8.54.0",
         "@typescript-eslint/parser": "^8.54.0",
+        "dependency-cruiser": "^17.3.8",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-import": "^2.27.5",
