@@ -7,17 +7,17 @@ export { HEALTH_OPTIONS } from './health.tokens';
 export type { HealthModuleOptions } from './health.tokens';
 
 @Module({
-  imports: [TerminusModule],
-  controllers: [HealthController],
-  providers: [{ provide: HEALTH_OPTIONS, useValue: { database: false } }],
+    imports: [TerminusModule],
+    controllers: [HealthController],
+    providers: [{ provide: HEALTH_OPTIONS, useValue: { database: false } }],
 })
 export class HealthModule {
-  static forRoot(options: HealthModuleOptions = {}): DynamicModule {
-    return {
-      module: HealthModule,
-      imports: [TerminusModule],
-      controllers: [HealthController],
-      providers: [{ provide: HEALTH_OPTIONS, useValue: options }],
-    };
-  }
+    static forRoot(options: HealthModuleOptions = {}): DynamicModule {
+        return {
+            module: HealthModule,
+            imports: [TerminusModule],
+            controllers: [HealthController],
+            providers: [{ provide: HEALTH_OPTIONS, useValue: options }],
+        };
+    }
 }

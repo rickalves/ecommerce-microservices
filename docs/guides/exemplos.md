@@ -2,15 +2,15 @@
 
 ## 🔐 Autenticação
 
-**IMPORTANTE:** Todos os endpoints (exceto /auth/*) agora requerem autenticação JWT!
+**IMPORTANTE:** Todos os endpoints (exceto /auth/\*) agora requerem autenticação JWT!
 
 ### Como autenticar:
 
 1. **Registrar ou fazer login** em `/auth/register` ou `/auth/login`
 2. **Copiar o accessToken** da resposta
 3. **Incluir o token** nas requisições:
-   - Header: `Authorization: Bearer SEU_TOKEN_AQUI`
-   - Ou usar Swagger UI e clicar em **Authorize**
+    - Header: `Authorization: Bearer SEU_TOKEN_AQUI`
+    - Ou usar Swagger UI e clicar em **Authorize**
 
 ## 🎯 Cenários de Teste Completos
 

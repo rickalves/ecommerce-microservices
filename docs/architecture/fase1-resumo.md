@@ -9,6 +9,7 @@
 ## Resumo
 
 Implementação bem-sucedida da Fase 1 da observabilidade, incluindo:
+
 - Pacote compartilhado `@ecommerce/observability`
 - Logging estruturado com Pino
 - Propagação de correlationId via AsyncLocalStorage
@@ -45,6 +46,7 @@ packages/observability/
 ### Características Implementadas
 
 **LoggerService:**
+
 - ✅ Formato JSON estruturado em produção
 - ✅ Pretty print colorido em desenvolvimento
 - ✅ Redact automático de dados sensíveis (password, token, cpf, etc.)
@@ -53,6 +55,7 @@ packages/observability/
 - ✅ Compatível com NestJS LoggerService
 
 **CorrelationService:**
+
 - ✅ AsyncLocalStorage para contexto thread-local
 - ✅ Geração automática de UUID v4 quando não fornecido
 - ✅ Propagação via header `X-Correlation-ID` (HTTP)
@@ -61,6 +64,7 @@ packages/observability/
 - ✅ Métodos: getContext(), getCorrelationId(), run(), createChildContext()
 
 **Health Checks:**
+
 - ✅ Endpoint `/health` - Check geral (DB + dependências)
 - ✅ Endpoint `/health/ready` - Readiness probe
 - ✅ Endpoint `/health/live` - Liveness probe
@@ -72,20 +76,25 @@ packages/observability/
 ## Integração nos Serviços
 
 ### API Gateway (porta 3000)
+
 **Arquivo:** `apps/api-gateway/src/app.module.ts`
 
 ✅ **Módulos adicionados:**
+
 - LoggerModule.forRoot({ serviceName: 'api-gateway' })
 - CorrelationModule
 - HealthModule
 
 ✅ **Interceptors:**
+
 - APP_INTERCEPTOR → LoggerInterceptor
 
 ✅ **Middleware:**
-- CorrelationMiddleware aplicado em todas as rotas (*)
+
+- CorrelationMiddleware aplicado em todas as rotas (\*)
 
 ✅ **main.ts:**
+
 - Logger customizado configurado
 - console.log substituídos por logger.info
 
@@ -94,18 +103,22 @@ packages/observability/
 ---
 
 ### Order Service (porta 3002)
+
 **Arquivo:** `apps/order-service/src/order.module.ts`
 
 ✅ **Módulos adicionados:**
+
 - LoggerModule.forRoot({ serviceName: 'order-service' })
 - CorrelationModule
 - HealthModule
 
 ✅ **Interceptors:**
+
 - APP_INTERCEPTOR → LoggerInterceptor
 - APP_INTERCEPTOR → CorrelationInterceptor (RabbitMQ)
 
 ✅ **main.ts:**
+
 - Logger customizado configurado
 - HTTP listen na porta 3002 para health check
 - console.log substituídos por logger.info
@@ -117,18 +130,22 @@ packages/observability/
 ---
 
 ### Payment Service (porta 3003)
+
 **Arquivo:** `apps/payment-service/src/payment.module.ts`
 
 ✅ **Módulos adicionados:**
+
 - LoggerModule.forRoot({ serviceName: 'payment-service' })
 - CorrelationModule
 - HealthModule
 
 ✅ **Interceptors:**
+
 - APP_INTERCEPTOR → LoggerInterceptor
 - APP_INTERCEPTOR → CorrelationInterceptor (RabbitMQ)
 
 ✅ **main.ts:**
+
 - Logger customizado configurado
 - HTTP listen na porta 3003 para health check
 - console.log substituídos por logger.info
@@ -140,17 +157,21 @@ packages/observability/
 ---
 
 ### User Service (porta 3001)
+
 **Arquivo:** `apps/user-service/src/user.module.ts`
 
 ✅ **Módulos adicionados:**
+
 - LoggerModule.forRoot({ serviceName: 'user-service' })
 - CorrelationModule
 - HealthModule
 
 ✅ **Interceptors:**
+
 - APP_INTERCEPTOR → LoggerInterceptor
 
 ✅ **main.ts:**
+
 - Logger customizado configurado
 - HTTP listen na porta 3001 para health check
 - console.log substituídos por logger.info
@@ -165,14 +186,14 @@ packages/observability/
 
 ```json
 {
-  "dependencies": {
-    "pino": "^10.3.1",
-    "pino-pretty": "^13.1.3",
-    "pino-http": "^11.0.0",
-    "@nestjs/terminus": "^11.0.0",
-    "@nestjs/axios": "^4.0.1",
-    "uuid": "^9.0.1"
-  }
+    "dependencies": {
+        "pino": "^10.3.1",
+        "pino-pretty": "^13.1.3",
+        "pino-http": "^11.0.0",
+        "@nestjs/terminus": "^11.0.0",
+        "@nestjs/axios": "^4.0.1",
+        "uuid": "^9.0.1"
+    }
 }
 ```
 
@@ -219,6 +240,7 @@ packages/observability/
 ## Formato de Log Estruturado
 
 ### Desenvolvimento (Pretty Print)
+
 ```
 [12:34:56.789] INFO: Incoming request: POST /orders
     service: "api-gateway"
@@ -228,16 +250,17 @@ packages/observability/
 ```
 
 ### Produção (JSON)
+
 ```json
 {
-  "level": "info",
-  "timestamp": "2026-02-11T12:34:56.789Z",
-  "service": "api-gateway",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "environment": "production",
-  "method": "POST",
-  "path": "/orders",
-  "msg": "Incoming request: POST /orders"
+    "level": "info",
+    "timestamp": "2026-02-11T12:34:56.789Z",
+    "service": "api-gateway",
+    "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+    "environment": "production",
+    "method": "POST",
+    "path": "/orders",
+    "msg": "Incoming request: POST /orders"
 }
 ```
 
@@ -246,6 +269,7 @@ packages/observability/
 ## Validação
 
 ### Compilação ✅
+
 ```bash
 pnpm build
 # Tasks:    6 successful, 6 total
@@ -254,12 +278,14 @@ pnpm build
 ```
 
 ### Serviços Integrados ✅
+
 - [x] API Gateway
 - [x] Order Service
 - [x] Payment Service
 - [x] User Service
 
 ### Funcionalidades ✅
+
 - [x] Logs estruturados
 - [x] CorrelationId propagado (HTTP)
 - [x] CorrelationId propagado (RabbitMQ)
@@ -272,6 +298,7 @@ pnpm build
 ## Testes Recomendados
 
 ### 1. Health Checks
+
 ```bash
 # API Gateway
 curl http://localhost:3000/health
@@ -289,6 +316,7 @@ curl http://localhost:3001/health
 ```
 
 ### 2. Correlation ID Propagation
+
 ```bash
 # Com X-Correlation-ID fornecido
 curl -H "X-Correlation-ID: test-123" http://localhost:3000/orders
@@ -297,6 +325,7 @@ curl -H "X-Correlation-ID: test-123" http://localhost:3000/orders
 ```
 
 ### 3. Log Estruturado
+
 ```bash
 # Executar serviço e observar formato JSON
 NODE_ENV=production pnpm dev
@@ -320,11 +349,13 @@ NODE_ENV=production pnpm dev
 ## Arquivos Modificados
 
 ### Novos
+
 - `packages/observability/` (completo)
 - `docs/adr/002-observabilidade-arquitetura-event-driven.md`
 - `docs/adr/README.md`
 
 ### Modificados
+
 - `package.json` (raiz) - dependências
 - `apps/api-gateway/src/app.module.ts`
 - `apps/api-gateway/src/main.ts`

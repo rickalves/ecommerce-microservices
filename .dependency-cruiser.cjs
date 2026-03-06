@@ -39,7 +39,8 @@ module.exports = {
         // Application (use cases) may only depend on Domain.
         {
             name: 'application-not-depend-on-infrastructure',
-            comment: '[DDD] Application layer must not depend directly on Infrastructure — use repository interfaces',
+            comment:
+                '[DDD] Application layer must not depend directly on Infrastructure — use repository interfaces',
             severity: 'error',
             from: { path: '/src/application/' },
             to: { path: '/src/infrastructure/' },
@@ -95,7 +96,8 @@ module.exports = {
         // ── CIRCULAR DEPENDENCIES ────────────────────────────────────────────────
         {
             name: 'no-circular',
-            comment: '[QUALITY] Circular dependencies create tight coupling and prevent tree-shaking',
+            comment:
+                '[QUALITY] Circular dependencies create tight coupling and prevent tree-shaking',
             severity: 'error',
             from: {},
             to: { circular: true },
@@ -153,7 +155,11 @@ module.exports = {
                         },
                         {
                             criteria: { source: '^packages/' },
-                            attributes: { fillcolor: '#fff2cc', color: '#d6b656', style: 'filled,bold' },
+                            attributes: {
+                                fillcolor: '#fff2cc',
+                                color: '#d6b656',
+                                style: 'filled,bold',
+                            },
                         },
                     ],
                 },

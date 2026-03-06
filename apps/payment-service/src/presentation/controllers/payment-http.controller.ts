@@ -7,9 +7,7 @@ import { GetPaymentUseCase } from '../../application/use-cases/get-payment.use-c
  */
 @Controller('payments')
 export class PaymentHttpController {
-    constructor(
-        private readonly getPaymentUseCase: GetPaymentUseCase
-    ) {}
+    constructor(private readonly getPaymentUseCase: GetPaymentUseCase) {}
 
     /**
      * GET /payments/:id

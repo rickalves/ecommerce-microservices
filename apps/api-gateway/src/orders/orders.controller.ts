@@ -41,7 +41,8 @@ export class OrdersController {
     @Post()
     @ApiOperation({
         summary: 'Criar novo pedido',
-        description: 'Cria um novo pedido para o usuário autenticado com lista de itens (assíncrono)',
+        description:
+            'Cria um novo pedido para o usuário autenticado com lista de itens (assíncrono)',
     })
     @ApiBody({ type: CreateOrderDto })
     @ApiResponse({
@@ -256,8 +257,12 @@ export class OrdersController {
             if (error.response?.status === 404) {
                 throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
             }
-            const message = error.response?.data?.message || error.message || 'Failed to fetch order';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch order';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -284,12 +289,18 @@ export class OrdersController {
         try {
             // ✅ Síncrono: HTTP direto
             const response = await firstValueFrom(
-                this.httpService.get<OrderResponseDto[]>(`${this.orderServiceUrl}/orders/user/${userId}`)
+                this.httpService.get<OrderResponseDto[]>(
+                    `${this.orderServiceUrl}/orders/user/${userId}`
+                )
             );
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to fetch orders';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch orders';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -315,8 +326,12 @@ export class OrdersController {
             );
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to fetch orders';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch orders';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 }

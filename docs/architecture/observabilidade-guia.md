@@ -10,61 +10,62 @@ import { LoggerService } from '@ecommerce/observability';
 
 @Injectable()
 export class MyService {
-  constructor(private readonly logger: LoggerService) {}
+    constructor(private readonly logger: LoggerService) {}
 
-  async doSomething(data: any) {
-    // Log simples
-    this.logger.info('Processing data');
+    async doSomething(data: any) {
+        // Log simples
+        this.logger.info('Processing data');
 
-    // Log com contexto
-    this.logger.info('Processing order', {
-      orderId: data.id,
-      userId: data.userId,
-      amount: data.amount,
-    });
+        // Log com contexto
+        this.logger.info('Processing order', {
+            orderId: data.id,
+            userId: data.userId,
+            amount: data.amount,
+        });
 
-    // Log de erro com stack trace
-    try {
-      // código
-    } catch (error) {
-      this.logger.error('Failed to process order', error.stack, {
-        orderId: data.id,
-        error: error.message,
-      });
+        // Log de erro com stack trace
+        try {
+            // código
+        } catch (error) {
+            this.logger.error('Failed to process order', error.stack, {
+                orderId: data.id,
+                error: error.message,
+            });
+        }
+
+        // Log de evento de negócio
+        this.logger.logEvent('order.created', {
+            orderId: saved.id,
+            totalAmount: saved.totalAmount,
+        });
+
+        // Log de métrica
+        this.logger.logMetric('order_processing_time', duration, 'ms', {
+            orderId: saved.id,
+        });
+
+        // Log de HTTP (já automático via interceptor)
+        // mas pode ser manual se necessário
+        this.logger.logHttp('POST', '/orders', 201, 145);
     }
-
-    // Log de evento de negócio
-    this.logger.logEvent('order.created', {
-      orderId: saved.id,
-      totalAmount: saved.totalAmount,
-    });
-
-    // Log de métrica
-    this.logger.logMetric('order_processing_time', duration, 'ms', {
-      orderId: saved.id,
-    });
-
-    // Log de HTTP (já automático via interceptor)
-    // mas pode ser manual se necessário
-    this.logger.logHttp('POST', '/orders', 201, 145);
-  }
 }
 ```
 
 ### Níveis de Log
 
 ```typescript
-logger.trace('Detailed debug info');    // Apenas dev
-logger.debug('Debug info');             // Dev
-logger.info('Normal operation');        // Prod
-logger.warn('Warning condition');       // Prod
-logger.error('Error occurred', trace);  // Prod
-logger.fatal('Fatal error');            // Prod
+logger.trace('Detailed debug info'); // Apenas dev
+logger.debug('Debug info'); // Dev
+logger.info('Normal operation'); // Prod
+logger.warn('Warning condition'); // Prod
+logger.error('Error occurred', trace); // Prod
+logger.fatal('Fatal error'); // Prod
 ```
 
 ### Visualização dos Logs
 
 **Desenvolvimento (pretty print):**
+
 ```bash
 NODE_ENV=development pnpm dev
 
@@ -77,6 +78,7 @@ NODE_ENV=development pnpm dev
 ```
 
 **Produçãoson):**
+
 ```bash
 NODE_ENV=production pnpm start
 
@@ -91,6 +93,7 @@ NODE_ENV=production pnpm start
 ### Propagação Automática
 
 O correlationId é propagado automaticamente em:
+
 - **HTTP:** via header `X-Correlation-ID`
 - **RabbitMQ:** via campo `correlationId` no payload
 
@@ -111,24 +114,24 @@ import { CorrelationService } from '@ecommerce/observability';
 
 @Injectable()
 export class MyService {
-  constructor(private readonly correlationService: CorrelationService) {}
+    constructor(private readonly correlationService: CorrelationService) {}
 
-  async doSomething() {
-    // Obter correlationId atual
-    const correlationId = this.correlationService.getCorrelationId();
-    console.log('Current correlation:', correlationId);
+    async doSomething() {
+        // Obter correlationId atual
+        const correlationId = this.correlationService.getCorrelationId();
+        console.log('Current correlation:', correlationId);
 
-    // Obter contexto completo
-    const context = this.correlationService.getContext();
-    console.log('Context:', context);
-    // { correlationId: "...", traceId: "...", userId: "...", ... }
+        // Obter contexto completo
+        const context = this.correlationService.getContext();
+        console.log('Context:', context);
+        // { correlationId: "...", traceId: "...", userId: "...", ... }
 
-    // Definir valor customizado no contexto
-    this.correlationService.set('customField', 'customValue');
+        // Definir valor customizado no contexto
+        this.correlationService.set('customField', 'customValue');
 
-    // Obter valor do contexto
-    const value = this.correlationService.get('customField');
-  }
+        // Obter valor do contexto
+        const value = this.correlationService.get('customField');
+    }
 }
 ```
 
@@ -141,32 +144,32 @@ import { CorrelationService } from '@ecommerce/observability';
 
 @Injectable()
 export class CreateOrderUseCase {
-  constructor(
-    @Inject('EVENT_BUS') private eventBus: ClientProxy,
-    private readonly correlationService: CorrelationService,
-  ) {}
+    constructor(
+        @Inject('EVENT_BUS') private eventBus: ClientProxy,
+        private readonly correlationService: CorrelationService
+    ) {}
 
-  async execute(dto: CreateOrderDto) {
-    const order = await this.repository.create(dto);
+    async execute(dto: CreateOrderDto) {
+        const order = await this.repository.create(dto);
 
-    // Obter correlationId do contexto atual
-    const correlationId = this.correlationService.getCorrelationId();
+        // Obter correlationId do contexto atual
+        const correlationId = this.correlationService.getCorrelationId();
 
-    // Emitir evento com correlationId
-    this.eventBus.emit('order.created.accepted', {
-      correlationId,              // ✅ Propaga o ID original
-      causationId: correlationId, // ✅ Para rastrear causa
-      timestamp: new Date().toISOString(),
-      eventType: 'order.created.accepted',
-      data: {
-        orderId: order.id,
-        userId: order.userId,
-        totalAmount: order.totalAmount,
-      },
-    });
+        // Emitir evento com correlationId
+        this.eventBus.emit('order.created.accepted', {
+            correlationId, // ✅ Propaga o ID original
+            causationId: correlationId, // ✅ Para rastrear causa
+            timestamp: new Date().toISOString(),
+            eventType: 'order.created.accepted',
+            data: {
+                orderId: order.id,
+                userId: order.userId,
+                totalAmount: order.totalAmount,
+            },
+        });
 
-    return order;
-  }
+        return order;
+    }
 }
 ```
 
@@ -175,7 +178,7 @@ export class CreateOrderUseCase {
 ```typescript
 // Para eventos derivados, manter correlationId mas definir causationId
 const childContext = this.correlationService.createChildContext({
-  eventType: 'payment.initiated',
+    eventType: 'payment.initiated',
 });
 
 console.log(childContext);
@@ -193,6 +196,7 @@ console.log(childContext);
 ### Endpoints Disponíveis
 
 **1. Health Check Geral** (`/health`)
+
 ```bash
 curl http://localhost:3000/health
 
@@ -214,6 +218,7 @@ curl http://localhost:3000/health
 ```
 
 **2. Readiness Probe** (`/health/ready`)
+
 ```bash
 curl http://localhost:3000/health/ready
 
@@ -222,6 +227,7 @@ curl http://localhost:3000/health/ready
 ```
 
 **3. Liveness Probe** (`/health/live`)
+
 ```bash
 curl http://localhost:3000/health/live
 
@@ -238,25 +244,25 @@ curl http://localhost:3000/health/live
 apiVersion: v1
 kind: Pod
 metadata:
-  name: api-gateway
+    name: api-gateway
 spec:
-  containers:
-  - name: api-gateway
-    image: ecommerce/api-gateway:latest
-    ports:
-    - containerPort: 3000
-    livenessProbe:
-      httpGet:
-        path: /health/live
-        port: 3000
-      initialDelaySeconds: 30
-      periodSeconds: 10
-    readinessProbe:
-      httpGet:
-        path: /health/ready
-        port: 3000
-      initialDelaySeconds: 5
-      periodSeconds: 5
+    containers:
+        - name: api-gateway
+          image: ecommerce/api-gateway:latest
+          ports:
+              - containerPort: 3000
+          livenessProbe:
+              httpGet:
+                  path: /health/live
+                  port: 3000
+              initialDelaySeconds: 30
+              periodSeconds: 10
+          readinessProbe:
+              httpGet:
+                  path: /health/ready
+                  port: 3000
+              initialDelaySeconds: 5
+              periodSeconds: 5
 ```
 
 ### Adicionando Checks Customizados
@@ -264,44 +270,45 @@ spec:
 ```typescript
 import { Controller, Get } from '@nestjs/common';
 import {
-  HealthCheck,
-  HealthCheckService,
-  TypeOrmHealthIndicator,
-  MicroserviceHealthIndicator,
-  MemoryHealthIndicator,
+    HealthCheck,
+    HealthCheckService,
+    TypeOrmHealthIndicator,
+    MicroserviceHealthIndicator,
+    MemoryHealthIndicator,
 } from '@nestjs/terminus';
 import { Transport } from '@nestjs/microservices';
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private health: HealthCheckService,
-    private db: TypeOrmHealthIndicator,
-    private microservice: MicroserviceHealthIndicator,
-    private memory: MemoryHealthIndicator,
-  ) {}
+    constructor(
+        private health: HealthCheckService,
+        private db: TypeOrmHealthIndicator,
+        private microservice: MicroserviceHealthIndicator,
+        private memory: MemoryHealthIndicator
+    ) {}
 
-  @Get()
-  @HealthCheck()
-  check() {
-    return this.health.check([
-      // Database check
-      () => this.db.pingCheck('database', { timeout: 300 }),
+    @Get()
+    @HealthCheck()
+    check() {
+        return this.health.check([
+            // Database check
+            () => this.db.pingCheck('database', { timeout: 300 }),
 
-      // RabbitMQ check
-      () => this.microservice.pingCheck('rabbitmq', {
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-        },
-        timeout: 3000,
-      }),
+            // RabbitMQ check
+            () =>
+                this.microservice.pingCheck('rabbitmq', {
+                    transport: Transport.RMQ,
+                    options: {
+                        urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
+                    },
+                    timeout: 3000,
+                }),
 
-      // Memory check
-      () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150MB
-      () => this.memory.checkRSS('memory_rss', 200 * 1024 * 1024),   // 200MB
-    ]);
-  }
+            // Memory check
+            () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150MB
+            () => this.memory.checkRSS('memory_rss', 200 * 1024 * 1024), // 200MB
+        ]);
+    }
 }
 ```
 
@@ -314,6 +321,7 @@ export class HealthController {
 **Causa:** O contexto não foi propagado corretamente.
 
 **Solução:**
+
 1. Verificar se `CorrelationMiddleware` está aplicado (HTTP)
 2. Verificar se `CorrelationInterceptor` está registrado (RabbitMQ)
 3. Verificar se eventos incluem `correlationId` no payload
@@ -323,18 +331,19 @@ export class HealthController {
 **Causa:** Cada serviço está gerando seu próprio ID.
 
 **Solução:**
+
 ```typescript
 // ❌ ERRADO
 this.eventBus.emit('event', {
-  correlationId: uuid(), // Gera novo ID!
-  data: order,
+    correlationId: uuid(), // Gera novo ID!
+    data: order,
 });
 
 // ✅ CORRETO
 const correlationId = this.correlationService.getCorrelationId();
 this.eventBus.emit('event', {
-  correlationId, // Usa ID do contexto
-  data: order,
+    correlationId, // Usa ID do contexto
+    data: order,
 });
 ```
 
@@ -343,6 +352,7 @@ this.eventBus.emit('event', {
 **Causa:** Nível de log muito restritivo.
 
 **Solução:**
+
 ```bash
 # Definir nível de log
 LOG_LEVEL=debug pnpm dev
@@ -353,6 +363,7 @@ LOG_LEVEL=debug pnpm dev
 **Causa:** Dependência (DB, RabbitMQ) não está acessível.
 
 **Solução:**
+
 1. Verificar se containers estão rodando: `docker-compose ps`
 2. Verificar logs do serviço: `docker-compose logs service-name`
 3. Verificar conectividade: `docker-compose exec service-name ping database`
@@ -369,9 +380,9 @@ logger.info('Order created');
 
 // ✅ PREFIRA
 logger.info('Order created', {
-  orderId: order.id,
-  userId: order.userId,
-  amount: order.totalAmount,
+    orderId: order.id,
+    userId: order.userId,
+    amount: order.totalAmount,
 });
 ```
 
@@ -401,15 +412,15 @@ this.eventBus.emit('event', {
 ```typescript
 // ❌ EVITE
 logger.info('User login', {
-  email: user.email,
-  password: user.password, // NUNCA!
+    email: user.email,
+    password: user.password, // NUNCA!
 });
 
 // ✅ PREFIRA
 logger.info('User login', {
-  userId: user.id,
-  email: user.email,
-  // password é automaticamente redacted
+    userId: user.id,
+    email: user.email,
+    // password é automaticamente redacted
 });
 ```
 
@@ -418,9 +429,9 @@ logger.info('User login', {
 ```typescript
 // Para eventos importantes de negócio
 logger.logEvent('order.paid', {
-  orderId: order.id,
-  amount: order.totalAmount,
-  paymentMethod: 'credit_card',
+    orderId: order.id,
+    amount: order.totalAmount,
+    paymentMethod: 'credit_card',
 });
 ```
 

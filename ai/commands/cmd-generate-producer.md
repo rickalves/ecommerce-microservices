@@ -1,4 +1,5 @@
 Crie a estratégia de producer com Outbox:
+
 - model da tabela outbox
 - lógica transacional (mudança + outbox)
 - publisher worker (polling ou listener)

@@ -77,7 +77,6 @@ import {
             },
         ]),
         AuthModule,
-
     ],
     controllers: [UsersController, OrdersController, PaymentsController],
     providers: [
@@ -97,8 +96,6 @@ import {
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer
-            .apply(CorrelationMiddleware)
-            .forRoutes('*');
+        consumer.apply(CorrelationMiddleware).forRoutes('*');
     }
 }

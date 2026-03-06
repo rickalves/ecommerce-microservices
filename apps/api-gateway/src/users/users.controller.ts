@@ -51,7 +51,9 @@ export class UsersController {
     })
     async createUser(@Body() createUserDto: CreateUserDto) {
         try {
-            const created = await firstValueFrom(this.userService.send({ cmd: 'create_user' }, createUserDto));
+            const created = await firstValueFrom(
+                this.userService.send({ cmd: 'create_user' }, createUserDto)
+            );
             return created;
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);

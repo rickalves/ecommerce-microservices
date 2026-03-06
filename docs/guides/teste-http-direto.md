@@ -7,12 +7,14 @@ Este guia explica como testar a nova arquitetura que separa **Queries (HTTP sín
 ### Arquitetura Antes vs Depois
 
 **ANTES (Tudo via RabbitMQ):**
+
 ```
 API Gateway → RabbitMQ RPC → Order Service
              (15-30ms)
 ```
 
 **DEPOIS (HTTP para Queries, RabbitMQ para Commands):**
+
 ```
 QUERIES:  API Gateway → HTTP → Order Service (5-15ms) ⚡ 2-3x mais rápido
 COMMANDS: API Gateway → RabbitMQ → Order Service (15-30ms)
@@ -23,11 +25,13 @@ COMMANDS: API Gateway → RabbitMQ → Order Service (15-30ms)
 #### Order Service
 
 **Queries (HTTP Síncrono) - NOVO:**
+
 - `GET /orders/:id` - Buscar pedido por ID
 - `GET /orders/user/:userId` - Buscar pedidos por usuário
 - `GET /orders` - Listar todos os pedidos
 
 **Commands (RabbitMQ Assíncrono) - Mantido:**
+
 - `POST /orders` - Criar pedido
 - `PATCH /orders/:id/confirm` - Confirmar pedido
 - `PATCH /orders/:id/ship` - Enviar pedido
@@ -37,12 +41,14 @@ COMMANDS: API Gateway → RabbitMQ → Order Service (15-30ms)
 #### Payment Service
 
 **Queries (HTTP Síncrono) - NOVO:**
+
 - `GET /payments/:id` - Buscar pagamento por ID
 - `GET /payments/order/:orderId` - Buscar pagamento por pedido
 - `GET /payments/user/:userId` - Buscar pagamentos por usuário
 - `GET /payments` - Listar todos os pagamentos
 
 **Commands (RabbitMQ Assíncrono) - Mantido:**
+
 - `POST /payments` - Criar pagamento
 - `PATCH /payments/:id/refund` - Reembolsar pagamento
 
@@ -77,6 +83,7 @@ docker-compose logs -f api-gateway
 ### 3. Testar Queries (HTTP Direto)
 
 **3.1. Listar Orders (HTTP):**
+
 ```bash
 # Via API Gateway → HTTP → Order Service
 curl -X GET "http://localhost:3000/orders" \
@@ -86,6 +93,7 @@ curl -X GET "http://localhost:3000/orders" \
 ```
 
 **3.2. Buscar Order por ID (HTTP):**
+
 ```bash
 curl -X GET "http://localhost:3000/orders/ORDER_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
@@ -94,6 +102,7 @@ curl -X GET "http://localhost:3000/orders/ORDER_ID" \
 ```
 
 **3.3. Listar Payments (HTTP):**
+
 ```bash
 curl -X GET "http://localhost:3000/payments" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
@@ -102,6 +111,7 @@ curl -X GET "http://localhost:3000/payments" \
 ```
 
 **3.4. Buscar Payment por Order (HTTP):**
+
 ```bash
 curl -X GET "http://localhost:3000/payments/order/ORDER_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
@@ -112,6 +122,7 @@ curl -X GET "http://localhost:3000/payments/order/ORDER_ID" \
 ### 4. Testar Commands (RabbitMQ Assíncrono)
 
 **4.1. Criar Order (RabbitMQ):**
+
 ```bash
 curl -X POST "http://localhost:3000/orders" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -137,6 +148,7 @@ curl -X POST "http://localhost:3000/orders" \
 ```
 
 **4.2. Confirmar Order (RabbitMQ):**
+
 ```bash
 curl -X PATCH "http://localhost:3000/orders/ORDER_ID/confirm" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
@@ -149,6 +161,7 @@ curl -X PATCH "http://localhost:3000/orders/ORDER_ID/confirm" \
 ```
 
 **4.3. Criar Payment (RabbitMQ):**
+
 ```bash
 curl -X POST "http://localhost:3000/payments" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -177,6 +190,7 @@ docker-compose logs api-gateway | grep -i "http\|rabbitmq"
 ```
 
 **Você deve ver:**
+
 - `✅ HTTP GET para queries` → chamadas HTTP diretas
 - `⚡ EMIT para commands` → eventos RabbitMQ
 
@@ -187,6 +201,7 @@ docker-compose logs order-service
 ```
 
 **Você deve ver:**
+
 - `Received HTTP GET /orders/:id` → requisições HTTP
 - `Received event: order.created` → eventos RabbitMQ
 
@@ -197,6 +212,7 @@ docker-compose logs payment-service
 ```
 
 **Você deve ver:**
+
 - `Received HTTP GET /payments/:id` → requisições HTTP
 - `Received event: payment.create` → eventos RabbitMQ
 
@@ -204,12 +220,12 @@ docker-compose logs payment-service
 
 ## 📊 Benchmark de Performance (Esperado)
 
-| Operação | Protocolo | Latência Antes | Latência Depois | Melhoria |
-|----------|-----------|---------------|-----------------|----------|
-| GET /orders/:id | RabbitMQ RPC → HTTP | 20-30ms | 5-15ms | ⚡ 2-3x |
-| GET /payments/:id | RabbitMQ RPC → HTTP | 20-30ms | 5-15ms | ⚡ 2-3x |
-| POST /orders | RabbitMQ (mantido) | 15-30ms | 15-30ms | - |
-| POST /payments | RabbitMQ (mantido) | 15-30ms | 15-30ms | - |
+| Operação          | Protocolo           | Latência Antes | Latência Depois | Melhoria |
+| ----------------- | ------------------- | -------------- | --------------- | -------- |
+| GET /orders/:id   | RabbitMQ RPC → HTTP | 20-30ms        | 5-15ms          | ⚡ 2-3x  |
+| GET /payments/:id | RabbitMQ RPC → HTTP | 20-30ms        | 5-15ms          | ⚡ 2-3x  |
+| POST /orders      | RabbitMQ (mantido)  | 15-30ms        | 15-30ms         | -        |
+| POST /payments    | RabbitMQ (mantido)  | 15-30ms        | 15-30ms         | -        |
 
 ---
 
@@ -220,6 +236,7 @@ docker-compose logs payment-service
 **Causa:** Order Service não está expondo o HTTP controller.
 
 **Solução:**
+
 1. Verificar se `OrderHttpController` está registrado no `order.module.ts`
 2. Verificar se a porta 3002 está listening: `docker-compose ps`
 3. Verificar logs: `docker-compose logs order-service`
@@ -229,21 +246,23 @@ docker-compose logs payment-service
 **Causa:** API Gateway não consegue conectar ao Order/Payment Service via HTTP.
 
 **Solução:**
+
 1. Verificar se os serviços estão na mesma rede Docker:
-   ```bash
-   docker network inspect ecommerce-microservices_default
-   ```
+    ```bash
+    docker network inspect ecommerce-microservices_default
+    ```
 2. Verificar variáveis de ambiente:
-   ```bash
-   ORDER_SERVICE_URL=http://order-service:3002
-   PAYMENT_SERVICE_URL=http://payment-service:3003
-   ```
+    ```bash
+    ORDER_SERVICE_URL=http://order-service:3002
+    PAYMENT_SERVICE_URL=http://payment-service:3003
+    ```
 
 ### Erro: `Module not found: @nestjs/axios`
 
 **Causa:** Dependência não instalada.
 
 **Solução:**
+
 ```bash
 cd apps/api-gateway
 pnpm add @nestjs/axios
@@ -254,10 +273,11 @@ pnpm add @nestjs/axios
 **Causa:** RabbitMQ não está recebendo os eventos.
 
 **Solução:**
+
 1. Verificar se RabbitMQ está rodando:
-   ```bash
-   docker-compose ps rabbitmq
-   ```
+    ```bash
+    docker-compose ps rabbitmq
+    ```
 2. Acessar RabbitMQ Management: http://localhost:15672 (guest/guest)
 3. Verificar se as filas `order_queue` e `payment_queue` existem
 4. Ver se há mensagens na fila
@@ -282,23 +302,25 @@ pnpm add @nestjs/axios
 ## 🚀 Próximos Passos
 
 1. **Métricas:** Adicionar Prometheus para medir latência real:
-   ```typescript
-   const httpDuration = new Histogram({
-     name: 'http_request_duration_seconds',
-     help: 'Duration of HTTP requests',
-     labelNames: ['method', 'route']
-   });
-   ```
+
+    ```typescript
+    const httpDuration = new Histogram({
+        name: 'http_request_duration_seconds',
+        help: 'Duration of HTTP requests',
+        labelNames: ['method', 'route'],
+    });
+    ```
 
 2. **Circuit Breaker:** Adicionar Resilience4j ou similar para falhas HTTP
 
 3. **Cache:** Adicionar Redis para queries frequentes:
-   ```typescript
-   @Get(':id')
-   @UseInterceptors(CacheInterceptor)
-   @CacheTTL(30)
-   async getOrder(@Param('id') id: string) { ... }
-   ```
+
+    ```typescript
+    @Get(':id')
+    @UseInterceptors(CacheInterceptor)
+    @CacheTTL(30)
+    async getOrder(@Param('id') id: string) { ... }
+    ```
 
 4. **Retry Policy:** Configurar retry automático para falhas HTTP temporárias
 

@@ -9,12 +9,8 @@ import type { ConsumeMessage } from 'amqplib';
  */
 @Controller()
 export class PaymentDlqController {
-
     @EventPattern('dlq.message')
-    async handleDeadLetter(
-        @Payload() data: unknown,
-        @Ctx() context: RmqContext,
-    ) {
+    async handleDeadLetter(@Payload() data: unknown, @Ctx() context: RmqContext) {
         const channel = context.getChannelRef();
         const msg = context.getMessage() as ConsumeMessage;
 

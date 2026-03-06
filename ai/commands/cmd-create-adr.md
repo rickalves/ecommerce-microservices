@@ -1,4 +1,5 @@
 Escreva um ADR (Architecture Decision Record) em Markdown com:
+
 - Contexto
 - Decisão
 - Alternativas consideradas

@@ -6,17 +6,17 @@ import { MetricsInterceptor } from './metrics.interceptor';
 @Global()
 @Module({})
 export class MetricsModule {
-  static forRoot(options: MetricsModuleOptions): DynamicModule {
-    const metricsProvider = {
-      provide: MetricsService,
-      useFactory: () => new MetricsService(options),
-    };
+    static forRoot(options: MetricsModuleOptions): DynamicModule {
+        const metricsProvider = {
+            provide: MetricsService,
+            useFactory: () => new MetricsService(options),
+        };
 
-    return {
-      module: MetricsModule,
-      controllers: [MetricsController],
-      providers: [metricsProvider, MetricsInterceptor],
-      exports: [MetricsService, MetricsInterceptor],
-    };
-  }
+        return {
+            module: MetricsModule,
+            controllers: [MetricsController],
+            providers: [metricsProvider, MetricsInterceptor],
+            exports: [MetricsService, MetricsInterceptor],
+        };
+    }
 }

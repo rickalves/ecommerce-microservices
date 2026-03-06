@@ -213,11 +213,11 @@ monorepo/
 - **API Gateway**: Ponto único de entrada + Autenticação centralizada JWT
 - **Bounded Contexts**: Cada serviço tem seu contexto delimitado e base de dados independente
 - **Event-Driven Architecture**: Eventos de domínio publicados no RabbitMQ
-- **Message Broker (RabbitMQ)**: 
-  - Garante entrega de mensagens
-  - Permite múltiplos consumidores
-  - Desacopla serviços produtores e consumidores
-  - Persistência de mensagens para resiliência
+- **Message Broker (RabbitMQ)**:
+    - Garante entrega de mensagens
+    - Permite múltiplos consumidores
+    - Desacopla serviços produtores e consumidores
+    - Persistência de mensagens para resiliência
 
 ### Documentação
 

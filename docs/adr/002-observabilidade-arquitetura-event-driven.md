@@ -14,6 +14,7 @@ O sistema de e-commerce baseado em microserviços utiliza arquitetura Event-Driv
 ### Estado Atual
 
 **Arquitetura:**
+
 - 4 microserviços: API Gateway, User Service, Order Service, Payment Service
 - Stack: NestJS + TypeScript + PostgreSQL + RabbitMQ
 - Padrão: Domain-Driven Design (DDD) + Event-Driven Architecture (EDA)
@@ -51,13 +52,13 @@ Implementaremos uma **stack de observabilidade completa e vendor-agnostic** base
 
 ### Stack Escolhida
 
-| Pilar | Tecnologia | Justificativa |
-|-------|-----------|---------------|
-| **Logs** | Pino | Mais performático para Node.js (3x mais rápido que Winston), suporte nativo a JSON estruturado |
-| **Métricas** | OpenTelemetry + Prometheus | Padrão da indústria CNCF, pull-based, excelente para séries temporais |
-| **Traces** | OpenTelemetry + Jaeger | Vendor-agnostic, suporte nativo W3C Trace Context, UI intuitiva |
-| **Dashboards** | Grafana | Open-source, integração nativa com Prometheus/Jaeger, altamente customizável |
-| **Health Checks** | @nestjs/terminus | Integração nativa NestJS, suporte a múltiplas dependências |
+| Pilar             | Tecnologia                 | Justificativa                                                                                  |
+| ----------------- | -------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Logs**          | Pino                       | Mais performático para Node.js (3x mais rápido que Winston), suporte nativo a JSON estruturado |
+| **Métricas**      | OpenTelemetry + Prometheus | Padrão da indústria CNCF, pull-based, excelente para séries temporais                          |
+| **Traces**        | OpenTelemetry + Jaeger     | Vendor-agnostic, suporte nativo W3C Trace Context, UI intuitiva                                |
+| **Dashboards**    | Grafana                    | Open-source, integração nativa com Prometheus/Jaeger, altamente customizável                   |
+| **Health Checks** | @nestjs/terminus           | Integração nativa NestJS, suporte a múltiplas dependências                                     |
 
 ### Arquitetura de Observabilidade
 
@@ -105,6 +106,7 @@ Implementaremos uma **stack de observabilidade completa e vendor-agnostic** base
 #### 1.1 Criar Pacote Compartilhado `packages/observability`
 
 **Estrutura:**
+
 ```
 packages/observability/
 ├── src/
@@ -127,20 +129,21 @@ packages/observability/
 
 ```typescript
 interface LogContext {
-  timestamp: string;           // ISO 8601
-  level: string;               // info, warn, error, debug
-  service: string;             // order-service, payment-service
-  correlationId: string;       // UUID propagado
-  traceId?: string;            // OpenTelemetry trace ID
-  spanId?: string;             // OpenTelemetry span ID
-  userId?: string;             // User context (quando disponível)
-  environment: string;         // dev, staging, prod
-  message: string;             // Log message
-  [key: string]: any;          // Campos customizados
+    timestamp: string; // ISO 8601
+    level: string; // info, warn, error, debug
+    service: string; // order-service, payment-service
+    correlationId: string; // UUID propagado
+    traceId?: string; // OpenTelemetry trace ID
+    spanId?: string; // OpenTelemetry span ID
+    userId?: string; // User context (quando disponível)
+    environment: string; // dev, staging, prod
+    message: string; // Log message
+    [key: string]: any; // Campos customizados
 }
 ```
 
 **Configuração:**
+
 - Desenvolvimento: Formato pretty com cores
 - Produção: JSON estruturado com redact de dados sensíveis
 - Redact automático: `password`, `token`, `authorization`, `cpf`, `creditCard`
@@ -150,32 +153,33 @@ interface LogContext {
 **Regras de Propagação:**
 
 1. **HTTP (API Gateway):**
-   - Extrair `X-Correlation-ID` header se existir
-   - Caso contrário, gerar UUID v4
-   - Propagar em todos os request headers downstream
+    - Extrair `X-Correlation-ID` header se existir
+    - Caso contrário, gerar UUID v4
+    - Propagar em todos os request headers downstream
 
 2. **RabbitMQ (Eventos):**
-   - Incluir `correlationId` no payload de todos os eventos
-   - Extrair no consumidor via interceptor
-   - Armazenar em AsyncLocalStorage para acesso thread-local
+    - Incluir `correlationId` no payload de todos os eventos
+    - Extrair no consumidor via interceptor
+    - Armazenar em AsyncLocalStorage para acesso thread-local
 
 3. **Spans (OpenTelemetry):**
-   - Adicionar `correlationId` como span attribute
-   - Permitir busca no Jaeger por correlation ID
+    - Adicionar `correlationId` como span attribute
+    - Permitir busca no Jaeger por correlation ID
 
 **Formato de Evento Padronizado:**
+
 ```typescript
 interface BaseEvent<T> {
-  version: string;                  // "v1"
-  correlationId: string;            // UUID propagado
-  causationId?: string;             // ID do evento que causou este
-  traceId: string;                  // OpenTelemetry trace ID
-  spanId: string;                   // OpenTelemetry span ID
-  timestamp: string;                // ISO 8601
-  service: string;                  // Nome do serviço produtor
-  eventType: string;                // "order.created"
-  data: T;                          // Payload específico
-  metadata?: Record<string, any>;   // userId, tenantId, etc
+    version: string; // "v1"
+    correlationId: string; // UUID propagado
+    causationId?: string; // ID do evento que causou este
+    traceId: string; // OpenTelemetry trace ID
+    spanId: string; // OpenTelemetry span ID
+    timestamp: string; // ISO 8601
+    service: string; // Nome do serviço produtor
+    eventType: string; // "order.created"
+    data: T; // Payload específico
+    metadata?: Record<string, any>; // userId, tenantId, etc
 }
 ```
 
@@ -216,35 +220,37 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
 export function initTracing(serviceName: string) {
-  const jaegerExporter = new JaegerExporter({
-    endpoint: process.env.JAEGER_ENDPOINT || 'http://jaeger:14268/api/traces',
-  });
+    const jaegerExporter = new JaegerExporter({
+        endpoint: process.env.JAEGER_ENDPOINT || 'http://jaeger:14268/api/traces',
+    });
 
-  const sdk = new NodeSDK({
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-      [SemanticResourceAttributes.SERVICE_VERSION]: process.env.npm_package_version || '1.0.0',
-      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
-    }),
-    spanProcessor: new BatchSpanProcessor(jaegerExporter),
-    instrumentations: [
-      getNodeAutoInstrumentations({
-        '@opentelemetry/instrumentation-http': {
-          enabled: true,
-          ignoreIncomingPaths: ['/health', '/metrics'],
-        },
-        '@opentelemetry/instrumentation-nestjs-core': { enabled: true },
-        '@opentelemetry/instrumentation-typeorm': { enabled: true },
-        '@opentelemetry/instrumentation-amqplib': { enabled: true },
-      }),
-    ],
-  });
+    const sdk = new NodeSDK({
+        resource: new Resource({
+            [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+            [SemanticResourceAttributes.SERVICE_VERSION]:
+                process.env.npm_package_version || '1.0.0',
+            [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
+                process.env.NODE_ENV || 'development',
+        }),
+        spanProcessor: new BatchSpanProcessor(jaegerExporter),
+        instrumentations: [
+            getNodeAutoInstrumentations({
+                '@opentelemetry/instrumentation-http': {
+                    enabled: true,
+                    ignoreIncomingPaths: ['/health', '/metrics'],
+                },
+                '@opentelemetry/instrumentation-nestjs-core': { enabled: true },
+                '@opentelemetry/instrumentation-typeorm': { enabled: true },
+                '@opentelemetry/instrumentation-amqplib': { enabled: true },
+            }),
+        ],
+    });
 
-  sdk.start();
+    sdk.start();
 
-  process.on('SIGTERM', () => {
-    sdk.shutdown().finally(() => process.exit(0));
-  });
+    process.on('SIGTERM', () => {
+        sdk.shutdown().finally(() => process.exit(0));
+    });
 }
 ```
 
@@ -268,33 +274,29 @@ import { NestFactory } from '@nestjs/core';
 import { trace } from '@opentelemetry/api';
 
 export function WithSpan(name?: string) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
-    const originalMethod = descriptor.value;
-    const spanName = name || `${target.constructor.name}.${propertyKey}`;
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+        const spanName = name || `${target.constructor.name}.${propertyKey}`;
 
-    descriptor.value = async function (...args: any[]) {
-      const tracer = trace.getTracer('default');
-      return tracer.startActiveSpan(spanName, async (span) => {
-        try {
-          const result = await originalMethod.apply(this, args);
-          span.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        } catch (error) {
-          span.recordException(error);
-          span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-          throw error;
-        } finally {
-          span.end();
-        }
-      });
+        descriptor.value = async function (...args: any[]) {
+            const tracer = trace.getTracer('default');
+            return tracer.startActiveSpan(spanName, async (span) => {
+                try {
+                    const result = await originalMethod.apply(this, args);
+                    span.setStatus({ code: SpanStatusCode.OK });
+                    return result;
+                } catch (error) {
+                    span.recordException(error);
+                    span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+                    throw error;
+                } finally {
+                    span.end();
+                }
+            });
+        };
+
+        return descriptor;
     };
-
-    return descriptor;
-  };
 }
 ```
 
@@ -305,16 +307,17 @@ export function WithSpan(name?: string) {
 import { WithSpan } from '@ecommerce/observability';
 
 export class CreateOrderUseCase {
-  @WithSpan('CreateOrderUseCase.execute')
-  async execute(dto: CreateOrderDto): Promise<Order> {
-    // lógica existente
-  }
+    @WithSpan('CreateOrderUseCase.execute')
+    async execute(dto: CreateOrderDto): Promise<Order> {
+        // lógica existente
+    }
 }
 ```
 
 #### 2.4 Propagação W3C Trace Context em RabbitMQ
 
 **Interceptor:**
+
 ```typescript
 // packages/observability/src/tracing/rabbitmq-tracing.interceptor.ts
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
@@ -323,22 +326,23 @@ import { Observable } from 'rxjs';
 
 @Injectable()
 export class RabbitMQTracingInterceptor implements NestInterceptor {
-  intercept(executionContext: ExecutionContext, next: CallHandler): Observable<any> {
-    const ctx = executionContext.switchToRpc();
-    const data = ctx.getData();
+    intercept(executionContext: ExecutionContext, next: CallHandler): Observable<any> {
+        const ctx = executionContext.switchToRpc();
+        const data = ctx.getData();
 
-    // Extrair contexto de trace do payload
-    if (data.traceContext) {
-      const extractedContext = propagation.extract(context.active(), data.traceContext);
-      return context.with(extractedContext, () => next.handle());
+        // Extrair contexto de trace do payload
+        if (data.traceContext) {
+            const extractedContext = propagation.extract(context.active(), data.traceContext);
+            return context.with(extractedContext, () => next.handle());
+        }
+
+        return next.handle();
     }
-
-    return next.handle();
-  }
 }
 ```
 
 **Injeção no Produtor:**
+
 ```typescript
 // Ao emitir evento, incluir trace context
 const span = trace.getActiveSpan();
@@ -346,9 +350,9 @@ const traceContext = {};
 propagation.inject(context.active(), traceContext);
 
 this.eventBus.emit('order.created', {
-  correlationId: order.id,
-  traceContext,
-  data: order,
+    correlationId: order.id,
+    traceContext,
+    data: order,
 });
 ```
 
@@ -357,19 +361,19 @@ this.eventBus.emit('order.created', {
 ```yaml
 # docker-compose.yml
 services:
-  jaeger:
-    image: jaegertracing/all-in-one:1.51
-    container_name: ecommerce-jaeger
-    ports:
-      - "16686:16686"   # Jaeger UI
-      - "14268:14268"   # Jaeger collector HTTP
-      - "14250:14250"   # Jaeger collector gRPC
-      - "6831:6831/udp" # Jaeger agent
-    environment:
-      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
-      COLLECTOR_OTLP_ENABLED: "true"
-    networks:
-      - ecommerce-network
+    jaeger:
+        image: jaegertracing/all-in-one:1.51
+        container_name: ecommerce-jaeger
+        ports:
+            - '16686:16686' # Jaeger UI
+            - '14268:14268' # Jaeger collector HTTP
+            - '14250:14250' # Jaeger collector gRPC
+            - '6831:6831/udp' # Jaeger agent
+        environment:
+            COLLECTOR_ZIPKIN_HOST_PORT: ':9411'
+            COLLECTOR_OTLP_ENABLED: 'true'
+        networks:
+            - ecommerce-network
 ```
 
 ---
@@ -385,79 +389,79 @@ import { Counter, Histogram, Gauge, Registry } from 'prom-client';
 
 @Injectable()
 export class MetricsService {
-  private readonly registry: Registry;
+    private readonly registry: Registry;
 
-  // Contadores
-  public readonly eventPublishedCounter: Counter;
-  public readonly eventConsumedCounter: Counter;
-  public readonly eventFailedCounter: Counter;
+    // Contadores
+    public readonly eventPublishedCounter: Counter;
+    public readonly eventConsumedCounter: Counter;
+    public readonly eventFailedCounter: Counter;
 
-  // Histogramas
-  public readonly eventProcessingDuration: Histogram;
-  public readonly httpRequestDuration: Histogram;
-  public readonly dbQueryDuration: Histogram;
+    // Histogramas
+    public readonly eventProcessingDuration: Histogram;
+    public readonly httpRequestDuration: Histogram;
+    public readonly dbQueryDuration: Histogram;
 
-  // Gauges
-  public readonly queueDepth: Gauge;
-  public readonly activeConnections: Gauge;
+    // Gauges
+    public readonly queueDepth: Gauge;
+    public readonly activeConnections: Gauge;
 
-  constructor() {
-    this.registry = new Registry();
+    constructor() {
+        this.registry = new Registry();
 
-    // Event publishing
-    this.eventPublishedCounter = new Counter({
-      name: 'event_published_total',
-      help: 'Total de eventos publicados',
-      labelNames: ['service', 'event_type'],
-      registers: [this.registry],
-    });
+        // Event publishing
+        this.eventPublishedCounter = new Counter({
+            name: 'event_published_total',
+            help: 'Total de eventos publicados',
+            labelNames: ['service', 'event_type'],
+            registers: [this.registry],
+        });
 
-    // Event consumption
-    this.eventConsumedCounter = new Counter({
-      name: 'event_consumed_total',
-      help: 'Total de eventos consumidos',
-      labelNames: ['service', 'event_type', 'status'],
-      registers: [this.registry],
-    });
+        // Event consumption
+        this.eventConsumedCounter = new Counter({
+            name: 'event_consumed_total',
+            help: 'Total de eventos consumidos',
+            labelNames: ['service', 'event_type', 'status'],
+            registers: [this.registry],
+        });
 
-    // Event failures
-    this.eventFailedCounter = new Counter({
-      name: 'event_failed_total',
-      help: 'Total de eventos falhados',
-      labelNames: ['service', 'event_type', 'reason'],
-      registers: [this.registry],
-    });
+        // Event failures
+        this.eventFailedCounter = new Counter({
+            name: 'event_failed_total',
+            help: 'Total de eventos falhados',
+            labelNames: ['service', 'event_type', 'reason'],
+            registers: [this.registry],
+        });
 
-    // Processing duration
-    this.eventProcessingDuration = new Histogram({
-      name: 'event_processing_duration_seconds',
-      help: 'Duração do processamento de eventos',
-      labelNames: ['service', 'event_type'],
-      buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
-      registers: [this.registry],
-    });
+        // Processing duration
+        this.eventProcessingDuration = new Histogram({
+            name: 'event_processing_duration_seconds',
+            help: 'Duração do processamento de eventos',
+            labelNames: ['service', 'event_type'],
+            buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
+            registers: [this.registry],
+        });
 
-    // HTTP requests
-    this.httpRequestDuration = new Histogram({
-      name: 'http_request_duration_seconds',
-      help: 'Duração de requisições HTTP',
-      labelNames: ['method', 'route', 'status_code'],
-      buckets: [0.01, 0.05, 0.1, 0.3, 0.5, 1, 2, 5],
-      registers: [this.registry],
-    });
+        // HTTP requests
+        this.httpRequestDuration = new Histogram({
+            name: 'http_request_duration_seconds',
+            help: 'Duração de requisições HTTP',
+            labelNames: ['method', 'route', 'status_code'],
+            buckets: [0.01, 0.05, 0.1, 0.3, 0.5, 1, 2, 5],
+            registers: [this.registry],
+        });
 
-    // Queue depth
-    this.queueDepth = new Gauge({
-      name: 'rabbitmq_queue_depth',
-      help: 'Número de mensagens na fila',
-      labelNames: ['queue_name'],
-      registers: [this.registry],
-    });
-  }
+        // Queue depth
+        this.queueDepth = new Gauge({
+            name: 'rabbitmq_queue_depth',
+            help: 'Número de mensagens na fila',
+            labelNames: ['queue_name'],
+            registers: [this.registry],
+        });
+    }
 
-  getMetrics(): Promise<string> {
-    return this.registry.metrics();
-  }
+    getMetrics(): Promise<string> {
+        return this.registry.metrics();
+    }
 }
 ```
 
@@ -470,12 +474,12 @@ import { MetricsService } from './metrics.service';
 
 @Controller()
 export class MetricsController {
-  constructor(private readonly metricsService: MetricsService) {}
+    constructor(private readonly metricsService: MetricsService) {}
 
-  @Get('metrics')
-  async getMetrics(): Promise<string> {
-    return this.metricsService.getMetrics();
-  }
+    @Get('metrics')
+    async getMetrics(): Promise<string> {
+        return this.metricsService.getMetrics();
+    }
 }
 ```
 
@@ -490,40 +494,40 @@ import { MetricsService } from './metrics.service';
 
 @Injectable()
 export class EventMetricsInterceptor implements NestInterceptor {
-  constructor(
-    private readonly metrics: MetricsService,
-    private readonly serviceName: string,
-  ) {}
+    constructor(
+        private readonly metrics: MetricsService,
+        private readonly serviceName: string
+    ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const pattern = context.switchToRpc().getContext().pattern;
-    const eventType = typeof pattern === 'string' ? pattern : pattern.cmd;
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+        const pattern = context.switchToRpc().getContext().pattern;
+        const eventType = typeof pattern === 'string' ? pattern : pattern.cmd;
 
-    const startTime = Date.now();
+        const startTime = Date.now();
 
-    return next.handle().pipe(
-      tap(() => {
-        const duration = (Date.now() - startTime) / 1000;
-        this.metrics.eventConsumedCounter.inc({
-          service: this.serviceName,
-          event_type: eventType,
-          status: 'success',
-        });
-        this.metrics.eventProcessingDuration.observe(
-          { service: this.serviceName, event_type: eventType },
-          duration,
+        return next.handle().pipe(
+            tap(() => {
+                const duration = (Date.now() - startTime) / 1000;
+                this.metrics.eventConsumedCounter.inc({
+                    service: this.serviceName,
+                    event_type: eventType,
+                    status: 'success',
+                });
+                this.metrics.eventProcessingDuration.observe(
+                    { service: this.serviceName, event_type: eventType },
+                    duration
+                );
+            }),
+            catchError((error) => {
+                this.metrics.eventFailedCounter.inc({
+                    service: this.serviceName,
+                    event_type: eventType,
+                    reason: error.constructor.name,
+                });
+                throw error;
+            })
         );
-      }),
-      catchError((error) => {
-        this.metrics.eventFailedCounter.inc({
-          service: this.serviceName,
-          event_type: eventType,
-          reason: error.constructor.name,
-        });
-        throw error;
-      }),
-    );
-  }
+    }
 }
 ```
 
@@ -532,33 +536,33 @@ export class EventMetricsInterceptor implements NestInterceptor {
 ```yaml
 # observability/prometheus/prometheus.yml
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+    scrape_interval: 15s
+    evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'api-gateway'
-    static_configs:
-      - targets: ['api-gateway:3000']
-    metrics_path: '/metrics'
+    - job_name: 'api-gateway'
+      static_configs:
+          - targets: ['api-gateway:3000']
+      metrics_path: '/metrics'
 
-  - job_name: 'order-service'
-    static_configs:
-      - targets: ['order-service:3002']
-    metrics_path: '/metrics'
+    - job_name: 'order-service'
+      static_configs:
+          - targets: ['order-service:3002']
+      metrics_path: '/metrics'
 
-  - job_name: 'payment-service'
-    static_configs:
-      - targets: ['payment-service:3003']
-    metrics_path: '/metrics'
+    - job_name: 'payment-service'
+      static_configs:
+          - targets: ['payment-service:3003']
+      metrics_path: '/metrics'
 
-  - job_name: 'user-service'
-    static_configs:
-      - targets: ['user-service:3001']
-    metrics_path: '/metrics'
+    - job_name: 'user-service'
+      static_configs:
+          - targets: ['user-service:3001']
+      metrics_path: '/metrics'
 
-  - job_name: 'rabbitmq'
-    static_configs:
-      - targets: ['rabbitmq:15692']
+    - job_name: 'rabbitmq'
+      static_configs:
+          - targets: ['rabbitmq:15692']
 ```
 
 #### 3.5 Docker Compose - Prometheus & Grafana
@@ -566,45 +570,45 @@ scrape_configs:
 ```yaml
 # docker-compose.yml
 services:
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: ecommerce-prometheus
-    volumes:
-      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./observability/prometheus/alerting.rules.yml:/etc/prometheus/alerting.rules.yml
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    ports:
-      - "9090:9090"
-    networks:
-      - ecommerce-network
+    prometheus:
+        image: prom/prometheus:v2.48.0
+        container_name: ecommerce-prometheus
+        volumes:
+            - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+            - ./observability/prometheus/alerting.rules.yml:/etc/prometheus/alerting.rules.yml
+            - prometheus-data:/prometheus
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+            - '--web.enable-lifecycle'
+        ports:
+            - '9090:9090'
+        networks:
+            - ecommerce-network
 
-  grafana:
-    image: grafana/grafana:10.2.2
-    container_name: ecommerce-grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning
-      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
-      - grafana-data:/var/lib/grafana
-    ports:
-      - "3300:3000"
-    depends_on:
-      - prometheus
-    networks:
-      - ecommerce-network
+    grafana:
+        image: grafana/grafana:10.2.2
+        container_name: ecommerce-grafana
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+            - GF_USERS_ALLOW_SIGN_UP=false
+        volumes:
+            - ./observability/grafana/provisioning:/etc/grafana/provisioning
+            - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+            - grafana-data:/var/lib/grafana
+        ports:
+            - '3300:3000'
+        depends_on:
+            - prometheus
+        networks:
+            - ecommerce-network
 
 volumes:
-  prometheus-data:
-  grafana-data:
+    prometheus-data:
+    grafana-data:
 ```
 
 ---
@@ -616,46 +620,52 @@ volumes:
 ```typescript
 // packages/observability/src/health/health.controller.ts
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator, MicroserviceHealthIndicator } from '@nestjs/terminus';
+import {
+    HealthCheck,
+    HealthCheckService,
+    TypeOrmHealthIndicator,
+    MicroserviceHealthIndicator,
+} from '@nestjs/terminus';
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private health: HealthCheckService,
-    private db: TypeOrmHealthIndicator,
-    private microservice: MicroserviceHealthIndicator,
-  ) {}
+    constructor(
+        private health: HealthCheckService,
+        private db: TypeOrmHealthIndicator,
+        private microservice: MicroserviceHealthIndicator
+    ) {}
 
-  @Get()
-  @HealthCheck()
-  check() {
-    return this.health.check([
-      () => this.db.pingCheck('database'),
-      () => this.microservice.pingCheck('rabbitmq', {
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RABBITMQ_URL],
-        },
-      }),
-    ]);
-  }
+    @Get()
+    @HealthCheck()
+    check() {
+        return this.health.check([
+            () => this.db.pingCheck('database'),
+            () =>
+                this.microservice.pingCheck('rabbitmq', {
+                    transport: Transport.RMQ,
+                    options: {
+                        urls: [process.env.RABBITMQ_URL],
+                    },
+                }),
+        ]);
+    }
 
-  @Get('ready')
-  @HealthCheck()
-  ready() {
-    // Readiness: serviço está pronto para receber tráfego
-    return this.health.check([
-      () => this.db.pingCheck('database'),
-      () => this.microservice.pingCheck('rabbitmq'),
-    ]);
-  }
+    @Get('ready')
+    @HealthCheck()
+    ready() {
+        // Readiness: serviço está pronto para receber tráfego
+        return this.health.check([
+            () => this.db.pingCheck('database'),
+            () => this.microservice.pingCheck('rabbitmq'),
+        ]);
+    }
 
-  @Get('live')
-  @HealthCheck()
-  live() {
-    // Liveness: serviço está vivo (não travado)
-    return { status: 'ok', timestamp: new Date().toISOString() };
-  }
+    @Get('live')
+    @HealthCheck()
+    live() {
+        // Liveness: serviço está vivo (não travado)
+        return { status: 'ok', timestamp: new Date().toISOString() };
+    }
 }
 ```
 
@@ -664,65 +674,65 @@ export class HealthController {
 ```yaml
 # observability/prometheus/alerting.rules.yml
 groups:
-  - name: microservices_alerts
-    interval: 30s
-    rules:
-      # Alta taxa de erro
-      - alert: HighEventErrorRate
-        expr: |
-          (rate(event_failed_total[5m]) / rate(event_consumed_total[5m])) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Alta taxa de erro em eventos - {{ $labels.service }}"
-          description: "Serviço {{ $labels.service }} com {{ $value | humanizePercentage }} de eventos falhando"
+    - name: microservices_alerts
+      interval: 30s
+      rules:
+          # Alta taxa de erro
+          - alert: HighEventErrorRate
+            expr: |
+                (rate(event_failed_total[5m]) / rate(event_consumed_total[5m])) > 0.05
+            for: 5m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'Alta taxa de erro em eventos - {{ $labels.service }}'
+                description: 'Serviço {{ $labels.service }} com {{ $value | humanizePercentage }} de eventos falhando'
 
-      # Latência alta
-      - alert: HighEventProcessingLatency
-        expr: |
-          histogram_quantile(0.95, rate(event_processing_duration_seconds_bucket[5m])) > 2
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Latência alta no processamento - {{ $labels.service }}"
-          description: "P95 de {{ $value }}s no serviço {{ $labels.service }}"
+          # Latência alta
+          - alert: HighEventProcessingLatency
+            expr: |
+                histogram_quantile(0.95, rate(event_processing_duration_seconds_bucket[5m])) > 2
+            for: 10m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'Latência alta no processamento - {{ $labels.service }}'
+                description: 'P95 de {{ $value }}s no serviço {{ $labels.service }}'
 
-      # Fila com backlog
-      - alert: HighQueueDepth
-        expr: rabbitmq_queue_depth > 1000
-        for: 15m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Fila {{ $labels.queue_name }} com backlog alto"
-          description: "{{ $value }} mensagens acumuladas"
+          # Fila com backlog
+          - alert: HighQueueDepth
+            expr: rabbitmq_queue_depth > 1000
+            for: 15m
+            labels:
+                severity: warning
+            annotations:
+                summary: 'Fila {{ $labels.queue_name }} com backlog alto'
+                description: '{{ $value }} mensagens acumuladas'
 
-      # Serviço indisponível
-      - alert: ServiceDown
-        expr: up == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Serviço {{ $labels.job }} está DOWN"
-          description: "O serviço não está respondendo há mais de 2 minutos"
+          # Serviço indisponível
+          - alert: ServiceDown
+            expr: up == 0
+            for: 2m
+            labels:
+                severity: critical
+            annotations:
+                summary: 'Serviço {{ $labels.job }} está DOWN'
+                description: 'O serviço não está respondendo há mais de 2 minutos'
 
-      # Taxa de sucesso baixa
-      - alert: LowSuccessRate
-        expr: |
-          (
-            sum(rate(event_consumed_total{status="success"}[5m])) by (service)
-            /
-            sum(rate(event_consumed_total[5m])) by (service)
-          ) < 0.95
-        for: 10m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Taxa de sucesso baixa - {{ $labels.service }}"
-          description: "Apenas {{ $value | humanizePercentage }} de sucesso"
+          # Taxa de sucesso baixa
+          - alert: LowSuccessRate
+            expr: |
+                (
+                  sum(rate(event_consumed_total{status="success"}[5m])) by (service)
+                  /
+                  sum(rate(event_consumed_total[5m])) by (service)
+                ) < 0.95
+            for: 10m
+            labels:
+                severity: critical
+            annotations:
+                summary: 'Taxa de sucesso baixa - {{ $labels.service }}'
+                description: 'Apenas {{ $value | humanizePercentage }} de sucesso'
 ```
 
 #### 4.3 Dead Letter Queue (DLQ)
@@ -730,36 +740,36 @@ groups:
 ```typescript
 // packages/observability/src/resilience/dlq.config.ts
 export const DLQ_CONFIG = {
-  exchanges: {
-    main: 'main_exchange',
-    dlx: 'dead_letter_exchange',
-  },
-  queues: {
-    order_events: {
-      name: 'order_events',
-      dlq: 'order_events.dlq',
-      options: {
-        durable: true,
-        arguments: {
-          'x-dead-letter-exchange': 'dead_letter_exchange',
-          'x-dead-letter-routing-key': 'order_events.dlq',
-          'x-message-ttl': 60000, // 1 minuto
-        },
-      },
+    exchanges: {
+        main: 'main_exchange',
+        dlx: 'dead_letter_exchange',
     },
-    payment_events: {
-      name: 'payment_events',
-      dlq: 'payment_events.dlq',
-      options: {
-        durable: true,
-        arguments: {
-          'x-dead-letter-exchange': 'dead_letter_exchange',
-          'x-dead-letter-routing-key': 'payment_events.dlq',
-          'x-message-ttl': 60000,
+    queues: {
+        order_events: {
+            name: 'order_events',
+            dlq: 'order_events.dlq',
+            options: {
+                durable: true,
+                arguments: {
+                    'x-dead-letter-exchange': 'dead_letter_exchange',
+                    'x-dead-letter-routing-key': 'order_events.dlq',
+                    'x-message-ttl': 60000, // 1 minuto
+                },
+            },
         },
-      },
+        payment_events: {
+            name: 'payment_events',
+            dlq: 'payment_events.dlq',
+            options: {
+                durable: true,
+                arguments: {
+                    'x-dead-letter-exchange': 'dead_letter_exchange',
+                    'x-dead-letter-routing-key': 'payment_events.dlq',
+                    'x-message-ttl': 60000,
+                },
+            },
+        },
     },
-  },
 };
 ```
 
@@ -770,67 +780,59 @@ export const DLQ_CONFIG = {
 import { Logger } from '@nestjs/common';
 
 interface RetryOptions {
-  maxAttempts?: number;
-  backoffMs?: number;
-  backoffMultiplier?: number;
-  onRetry?: (error: Error, attempt: number) => void;
+    maxAttempts?: number;
+    backoffMs?: number;
+    backoffMultiplier?: number;
+    onRetry?: (error: Error, attempt: number) => void;
 }
 
 export function Retry(options: RetryOptions = {}) {
-  const {
-    maxAttempts = 3,
-    backoffMs = 1000,
-    backoffMultiplier = 2,
-    onRetry,
-  } = options;
+    const { maxAttempts = 3, backoffMs = 1000, backoffMultiplier = 2, onRetry } = options;
 
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
-    const originalMethod = descriptor.value;
-    const logger = new Logger(target.constructor.name);
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+        const logger = new Logger(target.constructor.name);
 
-    descriptor.value = async function (...args: any[]) {
-      let lastError: Error;
+        descriptor.value = async function (...args: any[]) {
+            let lastError: Error;
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          return await originalMethod.apply(this, args);
-        } catch (error) {
-          lastError = error;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    return await originalMethod.apply(this, args);
+                } catch (error) {
+                    lastError = error;
 
-          if (attempt === maxAttempts) {
-            logger.error(
-              `Failed after ${maxAttempts} attempts: ${propertyKey}`,
-              error.stack,
-            );
-            throw error;
-          }
+                    if (attempt === maxAttempts) {
+                        logger.error(
+                            `Failed after ${maxAttempts} attempts: ${propertyKey}`,
+                            error.stack
+                        );
+                        throw error;
+                    }
 
-          const delay = backoffMs * Math.pow(backoffMultiplier, attempt - 1);
-          logger.warn(
-            `Retry ${attempt}/${maxAttempts} for ${propertyKey} after ${delay}ms`,
-          );
+                    const delay = backoffMs * Math.pow(backoffMultiplier, attempt - 1);
+                    logger.warn(
+                        `Retry ${attempt}/${maxAttempts} for ${propertyKey} after ${delay}ms`
+                    );
 
-          if (onRetry) {
-            onRetry(error, attempt);
-          }
+                    if (onRetry) {
+                        onRetry(error, attempt);
+                    }
 
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
+                    await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+            }
 
-      throw lastError;
+            throw lastError;
+        };
+
+        return descriptor;
     };
-
-    return descriptor;
-  };
 }
 ```
 
 **Uso:**
+
 ```typescript
 @EventPattern('payment.completed')
 @Retry({ maxAttempts: 3, backoffMs: 2000 })
@@ -848,38 +850,39 @@ async handlePaymentCompleted(data: any) {
 ```yaml
 # observability/slos.yml
 services:
-  order-service:
-    slo:
-      availability: 99.5%        # 3.6 horas de downtime por mês
-      latency_p95: 500ms
-      latency_p99: 1000ms
-      error_rate: 1%
-    sli:
-      - name: availability
-        query: up{job="order-service"}
-      - name: latency_p95
-        query: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
-      - name: error_rate
-        query: rate(event_failed_total[5m]) / rate(event_consumed_total[5m])
+    order-service:
+        slo:
+            availability: 99.5% # 3.6 horas de downtime por mês
+            latency_p95: 500ms
+            latency_p99: 1000ms
+            error_rate: 1%
+        sli:
+            - name: availability
+              query: up{job="order-service"}
+            - name: latency_p95
+              query: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+            - name: error_rate
+              query: rate(event_failed_total[5m]) / rate(event_consumed_total[5m])
 
-  payment-service:
-    slo:
-      availability: 99.9%        # 43 minutos de downtime por mês
-      latency_p95: 300ms
-      latency_p99: 800ms
-      error_rate: 0.5%
-    sli:
-      - name: availability
-        query: up{job="payment-service"}
-      - name: latency_p95
-        query: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
-      - name: error_rate
-        query: rate(event_failed_total[5m]) / rate(event_consumed_total[5m])
+    payment-service:
+        slo:
+            availability: 99.9% # 43 minutos de downtime por mês
+            latency_p95: 300ms
+            latency_p99: 800ms
+            error_rate: 0.5%
+        sli:
+            - name: availability
+              query: up{job="payment-service"}
+            - name: latency_p95
+              query: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+            - name: error_rate
+              query: rate(event_failed_total[5m]) / rate(event_consumed_total[5m])
 ```
 
 #### 5.2 Grafana Dashboards
 
 **Dashboard 1: Visão Geral (Overview)**
+
 - Taxa de eventos publicados/consumidos (req/s)
 - Latência P50/P95/P99 por serviço
 - Taxa de erro global
@@ -887,24 +890,28 @@ services:
 - Queue depth RabbitMQ
 
 **Dashboard 2: Order Service**
+
 - Throughput de pedidos (criados/confirmados/cancelados)
 - Duração dos use cases
 - Taxa de sucesso por operação
 - Dependências (DB, RabbitMQ)
 
 **Dashboard 3: Payment Service**
+
 - Throughput de pagamentos (iniciados/completados/falhados)
 - Taxa de sucesso de pagamentos
 - Latência de processamento
 - Métricas de refund
 
 **Dashboard 4: RabbitMQ**
+
 - Mensagens publicadas/consumidas
 - Queue depth por fila
 - Consumer lag
 - DLQ depth
 
 **Dashboard 5: Infraestrutura**
+
 - CPU/Memória por serviço
 - Connections ativas (DB + RabbitMQ)
 - Disk I/O
@@ -916,33 +923,33 @@ services:
 # observability/grafana/provisioning/datasources/datasources.yml
 apiVersion: 1
 datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: false
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus:9090
+      isDefault: true
+      editable: false
 
-  - name: Jaeger
-    type: jaeger
-    access: proxy
-    url: http://jaeger:16686
-    editable: false
+    - name: Jaeger
+      type: jaeger
+      access: proxy
+      url: http://jaeger:16686
+      editable: false
 ```
 
 ```yaml
 # observability/grafana/provisioning/dashboards/dashboards.yml
 apiVersion: 1
 providers:
-  - name: 'Default'
-    orgId: 1
-    folder: ''
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 10
-    allowUiUpdates: true
-    options:
-      path: /var/lib/grafana/dashboards
+    - name: 'Default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+          path: /var/lib/grafana/dashboards
 ```
 
 ---
@@ -963,27 +970,27 @@ providers:
 ### Negativas
 
 1. **Overhead de Performance:**
-   - Logs: ~5-10ms por request adicional
-   - Traces: ~2-5ms por span
-   - Métricas: ~1-2ms por operação
-   - **Mitigação:** Sampling de traces em produção (10-20%)
+    - Logs: ~5-10ms por request adicional
+    - Traces: ~2-5ms por span
+    - Métricas: ~1-2ms por operação
+    - **Mitigação:** Sampling de traces em produção (10-20%)
 
 2. **Complexidade Operacional:**
-   - 3 novos serviços para gerenciar (Prometheus, Jaeger, Grafana)
-   - **Mitigação:** Helm charts e automação de deploy
+    - 3 novos serviços para gerenciar (Prometheus, Jaeger, Grafana)
+    - **Mitigação:** Helm charts e automação de deploy
 
 3. **Storage:**
-   - Prometheus: ~1-2GB/dia por serviço
-   - Jaeger: ~500MB-1GB/dia com sampling
-   - **Mitigação:** Retenção de 15 dias (Prometheus) e 7 dias (Jaeger)
+    - Prometheus: ~1-2GB/dia por serviço
+    - Jaeger: ~500MB-1GB/dia com sampling
+    - **Mitigação:** Retenção de 15 dias (Prometheus) e 7 dias (Jaeger)
 
 4. **Curva de Aprendizado:**
-   - Time precisa aprender PromQL e Grafana
-   - **Mitigação:** Treinamento + dashboards pré-configurados
+    - Time precisa aprender PromQL e Grafana
+    - **Mitigação:** Treinamento + dashboards pré-configurados
 
 5. **Custo de Desenvolvimento:**
-   - ~3-5 semanas para implementação completa
-   - **Mitigação:** Implementação incremental (priorizando ordem de valor)
+    - ~3-5 semanas para implementação completa
+    - **Mitigação:** Implementação incremental (priorizando ordem de valor)
 
 ---
 
@@ -992,11 +999,13 @@ providers:
 ### Alternativa 1: SaaS Completo (Datadog, New Relic)
 
 **Prós:**
+
 - Setup mais rápido (< 1 semana)
 - Suporte técnico incluso
 - Features avançadas (APM, Synthetic Monitoring)
 
 **Contras:**
+
 - Custo elevado (~$500-1000/mês para 4 serviços)
 - Vendor lock-in
 - Dados sensíveis enviados para terceiros
@@ -1008,10 +1017,12 @@ providers:
 ### Alternativa 2: ELK Stack (Elasticsearch, Logstash, Kibana)
 
 **Prós:**
+
 - Stack madura e amplamente utilizada
 - Kibana oferece excelente UI para logs
 
 **Contras:**
+
 - Elasticsearch pesado (>2GB RAM por instância)
 - Não resolve traces nativamente
 - Complexidade de configuração/tuning
@@ -1024,10 +1035,12 @@ providers:
 ### Alternativa 3: Winston + Grafana Loki
 
 **Prós:**
+
 - Loki mais leve que Elasticsearch
 - Integração nativa com Grafana
 
 **Contras:**
+
 - Winston mais lento que Pino
 - Loki sem features avançadas de search
 
@@ -1038,10 +1051,12 @@ providers:
 ### Alternativa 4: Apenas Logs (sem Traces)
 
 **Prós:**
+
 - Implementação mais rápida (~2 semanas)
 - Menor overhead de performance
 
 **Contras:**
+
 - Impossível visualizar fluxo completo de requisições distribuídas
 - Debugging de latência muito difícil
 
@@ -1057,8 +1072,8 @@ Após 3 meses da implementação completa, esperamos:
 2. **MTTD (Mean Time To Detection):** Redução de 30 min → 5 min
 3. **Incident Postmortems:** 100% com traces completos anexados
 4. **SLO Compliance:**
-   - Order Service: 99.5%+ de disponibilidade
-   - Payment Service: 99.9%+ de disponibilidade
+    - Order Service: 99.5%+ de disponibilidade
+    - Payment Service: 99.9%+ de disponibilidade
 5. **Developer Satisfaction:** >80% de aprovação em survey interno
 6. **Zero Blind Spots:** Todo evento crítico com trace e log
 
@@ -1067,6 +1082,7 @@ Após 3 meses da implementação completa, esperamos:
 ## Checklist de Implementação
 
 ### Fase 1: Fundação (Semana 1-2)
+
 - [ ] Criar pacote `packages/observability`
 - [ ] Implementar `LoggerService` com Pino
 - [ ] Implementar `CorrelationService` com AsyncLocalStorage
@@ -1079,6 +1095,7 @@ Após 3 meses da implementação completa, esperamos:
 - [ ] Substituir todos `console.log()` por `LoggerService`
 
 ### Fase 2: Tracing (Semana 2-3)
+
 - [ ] Instalar dependências OpenTelemetry
 - [ ] Criar `tracer.ts` com configuração base
 - [ ] Inicializar tracing em `main.ts` de cada serviço
@@ -1089,6 +1106,7 @@ Após 3 meses da implementação completa, esperamos:
 - [ ] Validar traces end-to-end no Jaeger UI
 
 ### Fase 3: Métricas (Semana 3-4)
+
 - [ ] Implementar `MetricsService`
 - [ ] Criar endpoint `/metrics` em cada serviço
 - [ ] Criar interceptor de métricas de eventos
@@ -1099,6 +1117,7 @@ Após 3 meses da implementação completa, esperamos:
 - [ ] Validar scraping no Prometheus UI
 
 ### Fase 4: Resiliência (Semana 4-5)
+
 - [ ] Implementar Health Checks com Terminus
 - [ ] Configurar readiness/liveness probes
 - [ ] Criar `alerting.rules.yml`
@@ -1108,6 +1127,7 @@ Após 3 meses da implementação completa, esperamos:
 - [ ] Testar cenários de falha
 
 ### Fase 5: Dashboards (Semana 5)
+
 - [ ] Definir SLOs por serviço
 - [ ] Criar dashboard "Overview"
 - [ ] Criar dashboard "Order Service"
@@ -1118,6 +1138,7 @@ Após 3 meses da implementação completa, esperamos:
 - [ ] Validar alertas funcionando
 
 ### Fase 6: Documentação e Treinamento
+
 - [ ] Criar runbook de troubleshooting
 - [ ] Documentar queries PromQL úteis
 - [ ] Criar guia de uso de Jaeger
@@ -1141,9 +1162,9 @@ Após 3 meses da implementação completa, esperamos:
 
 ## Revisões
 
-| Versão | Data | Autor | Alterações |
-|--------|------|-------|------------|
-| 1.0 | 2026-02-11 | Equipe de Arquitetura | Criação inicial |
+| Versão | Data       | Autor                 | Alterações      |
+| ------ | ---------- | --------------------- | --------------- |
+| 1.0    | 2026-02-11 | Equipe de Arquitetura | Criação inicial |
 
 ---
 

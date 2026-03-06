@@ -151,8 +151,12 @@ export class PaymentsController {
             if (error.response?.status === 404) {
                 throw new HttpException('Payment not found', HttpStatus.NOT_FOUND);
             }
-            const message = error.response?.data?.message || error.message || 'Failed to fetch payment';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch payment';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -179,15 +183,21 @@ export class PaymentsController {
         try {
             // ✅ Síncrono: HTTP direto
             const response = await firstValueFrom(
-                this.httpService.get<PaymentResponseDto>(`${this.paymentServiceUrl}/payments/order/${orderId}`)
+                this.httpService.get<PaymentResponseDto>(
+                    `${this.paymentServiceUrl}/payments/order/${orderId}`
+                )
             );
             return response.data;
         } catch (error: any) {
             if (error.response?.status === 404) {
                 throw new HttpException('Payment not found for this order', HttpStatus.NOT_FOUND);
             }
-            const message = error.response?.data?.message || error.message || 'Failed to fetch payment';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch payment';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -214,12 +224,18 @@ export class PaymentsController {
         try {
             // ✅ Síncrono: HTTP direto
             const response = await firstValueFrom(
-                this.httpService.get<PaymentResponseDto[]>(`${this.paymentServiceUrl}/payments/user/${userId}`)
+                this.httpService.get<PaymentResponseDto[]>(
+                    `${this.paymentServiceUrl}/payments/user/${userId}`
+                )
             );
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to fetch payments';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch payments';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -245,8 +261,12 @@ export class PaymentsController {
             );
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to fetch payments';
-            throw new HttpException(message, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
+            const message =
+                error.response?.data?.message || error.message || 'Failed to fetch payments';
+            throw new HttpException(
+                message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 }

@@ -7,9 +7,7 @@ import { GetOrderUseCase } from '../../application/use-cases/get-order.use-case'
  */
 @Controller('orders')
 export class OrderHttpController {
-    constructor(
-        private readonly getOrderUseCase: GetOrderUseCase
-    ) {}
+    constructor(private readonly getOrderUseCase: GetOrderUseCase) {}
 
     /**
      * GET /orders/:id

@@ -4,16 +4,16 @@ Plataforma de e-commerce construída com NestJS, arquitetura DDD e comunicação
 
 ## Serviços
 
-| Serviço | Porta | Responsabilidade |
-|---------|-------|-----------------|
-| API Gateway | 3000 | Ponto de entrada HTTP, autenticação JWT |
-| User Service | 3001 | Gerenciamento de usuários |
-| Order Service | 3002 | Gerenciamento de pedidos |
-| Payment Service | 3003 | Processamento de pagamentos |
-| RabbitMQ | 5672 / 15672 | Message broker (AMQP / Management UI) |
-| PostgreSQL Users | 5432 | Banco de dados de usuários |
-| PostgreSQL Orders | 5433 | Banco de dados de pedidos |
-| PostgreSQL Payments | 5434 | Banco de dados de pagamentos |
+| Serviço             | Porta        | Responsabilidade                        |
+| ------------------- | ------------ | --------------------------------------- |
+| API Gateway         | 3000         | Ponto de entrada HTTP, autenticação JWT |
+| User Service        | 3001         | Gerenciamento de usuários               |
+| Order Service       | 3002         | Gerenciamento de pedidos                |
+| Payment Service     | 3003         | Processamento de pagamentos             |
+| RabbitMQ            | 5672 / 15672 | Message broker (AMQP / Management UI)   |
+| PostgreSQL Users    | 5432         | Banco de dados de usuários              |
+| PostgreSQL Orders   | 5433         | Banco de dados de pedidos               |
+| PostgreSQL Payments | 5434         | Banco de dados de pagamentos            |
 
 ## Pré-requisitos
 
@@ -67,14 +67,14 @@ Ver mais exemplos em [docs/guides/exemplos.md](./docs/guides/exemplos.md).
 
 ## Documentação
 
-| Categoria | Link |
-|-----------|------|
-| Indice completo | [docs/](./docs/README.md) |
-| Arquitetura e DDD | [docs/architecture/arquitetura.md](./docs/architecture/arquitetura.md) |
-| Comandos e scripts | [docs/guides/comandos.md](./docs/guides/comandos.md) |
-| Exemplos de uso | [docs/guides/exemplos.md](./docs/guides/exemplos.md) |
-| Diagramas C4 | [docs/diagrams/](./docs/diagrams/) |
-| Decisões arquiteturais (ADRs) | [docs/adr/](./docs/adr/) |
+| Categoria                     | Link                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| Indice completo               | [docs/](./docs/README.md)                                              |
+| Arquitetura e DDD             | [docs/architecture/arquitetura.md](./docs/architecture/arquitetura.md) |
+| Comandos e scripts            | [docs/guides/comandos.md](./docs/guides/comandos.md)                   |
+| Exemplos de uso               | [docs/guides/exemplos.md](./docs/guides/exemplos.md)                   |
+| Diagramas C4                  | [docs/diagrams/](./docs/diagrams/)                                     |
+| Decisões arquiteturais (ADRs) | [docs/adr/](./docs/adr/)                                               |
 
 ## Desenvolvimento local
 

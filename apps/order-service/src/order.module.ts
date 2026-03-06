@@ -41,7 +41,7 @@ import {
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RMQ_URL || 'amqp://rabbitmq:5672'],
-                    queue: QUEUES.PAYMENT,  // Publica para a fila do payment-service
+                    queue: QUEUES.PAYMENT, // Publica para a fila do payment-service
                     queueOptions: {
                         durable: true,
                         arguments: {

@@ -14,18 +14,18 @@ feat, fix, refactor, perf, docs, test, chore, build, ci, style, revert
 
 - Escrever em Português (pt-BR).
 - subject:
-  - Imperativo.
-  - Conciso.
-  - Máximo 72 caracteres.
-  - Sem ponto final.
+    - Imperativo.
+    - Conciso.
+    - Máximo 72 caracteres.
+    - Sem ponto final.
 - scope:
-  - Inferir automaticamente com base na área alterada.
-  - Exemplos comuns:
-    api, auth, db, ui, messaging, docs, config, tests, ci, events, consumers, producers
-  - Se não for claro, omitir o scope.
+    - Inferir automaticamente com base na área alterada.
+    - Exemplos comuns:
+      api, auth, db, ui, messaging, docs, config, tests, ci, events, consumers, producers
+    - Se não for claro, omitir o scope.
 - Se houver múltiplas alterações relevantes:
-  - Criar um assunto principal.
-  - Explicar o restante no body com bullets.
+    - Criar um assunto principal.
+    - Explicar o restante no body com bullets.
 - Gerar a mensagem em formato markdown pronto para copiar.
 - NÃO incluir crases.
 - NÃO incluir emojis.
@@ -38,14 +38,15 @@ Se necessário:
 
 - Inserir linha em branco após o subject.
 - Usar bullets explicando:
-  - O que mudou
-  - Por que mudou (se relevante)
+    - O que mudou
+    - Por que mudou (se relevante)
 - Se houver breaking change, adicionar ao final:
 
 BREAKING CHANGE: <descrever impacto e migração necessária>
 
 [INPUT ESPERADO]
 Receberei:
+
 - Lista de arquivos alterados
 - Descrição das mudanças
 - Contexto do objetivo da alteração

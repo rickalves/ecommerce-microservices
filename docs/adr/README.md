@@ -24,22 +24,29 @@ Seguimos o formato MADR (Markdown Any Decision Records) adaptado:
 **Decisores:** Nome(s)
 
 ## Contexto
+
 [Descreva o problema e por que uma decisão é necessária]
 
 ## Decisão
+
 [Descreva a decisão tomada]
 
 ## Consequências
+
 ### Positivas
+
 [Liste os benefícios]
 
 ### Negativas
+
 [Liste os trade-offs e desafios]
 
 ## Alternativas Consideradas
+
 [Liste outras opções avaliadas e por que foram rejeitadas]
 
 ## Referências
+
 [Links, documentação relevante]
 ```
 
@@ -80,6 +87,7 @@ Crie uma ADR quando:
 - A decisão define padrões ou convenções importantes
 
 **Exemplos:**
+
 - Escolha de stack de observabilidade
 - Mudança de banco de dados
 - Adoção de novos padrões arquiteturais
@@ -88,16 +96,18 @@ Crie uma ADR quando:
 
 ## Índice de ADRs
 
-| # | Título | Status | Data |
-|---|--------|--------|------|
-| [001](./001-microservicos-eda-vs-arquitetura-em-camadas.md) | Microserviços com EDA vs Arquitetura em Camadas | Aceito | 2026-02-21 |
-| [002](./002-observabilidade-arquitetura-event-driven.md) | Implementação de Observabilidade em Arquitetura Event-Driven | Proposto | 2026-02-11 |
-| [003](./003-comunicacao-sincrona-vs-assincrona.md) | Comunicação Síncrona vs Assíncrona em Microserviços (CQRS simplificado) | Proposto | 2026-02-17 |
-| [004](./004-autenticacao-jwt-api-gateway.md) | Autenticação JWT Centralizada no API Gateway | Aceito | 2026-02-21 |
-| [005](./005-monorepo-turborepo-pnpm.md) | Estrutura Monorepo com Turborepo e pnpm Workspaces | Aceito | 2026-02-21 |
+| #                                                           | Título                                                                  | Status   | Data       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------- | -------- | ---------- |
+| [001](./001-microservicos-eda-vs-arquitetura-em-camadas.md) | Microserviços com EDA vs Arquitetura em Camadas                         | Aceito   | 2026-02-21 |
+| [002](./002-observabilidade-arquitetura-event-driven.md)    | Implementação de Observabilidade em Arquitetura Event-Driven            | Proposto | 2026-02-11 |
+| [003](./003-comunicacao-sincrona-vs-assincrona.md)          | Comunicação Síncrona vs Assíncrona em Microserviços (CQRS simplificado) | Proposto | 2026-02-17 |
+| [004](./004-autenticacao-jwt-api-gateway.md)                | Autenticação JWT Centralizada no API Gateway                            | Aceito   | 2026-02-21 |
+| [005](./005-monorepo-turborepo-pnpm.md)                     | Estrutura Monorepo com Turborepo e pnpm Workspaces                      | Aceito   | 2026-02-21 |
+
 ---
 
 **Referências:**
+
 - [ADR GitHub Organization](https://adr.github.io/)
 - [MADR Template](https://adr.github.io/madr/)
 - [When to Write an ADR](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)

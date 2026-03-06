@@ -5,7 +5,7 @@ import { CorrelationInterceptor } from './correlation.interceptor';
 
 @Global()
 @Module({
-  providers: [CorrelationService, CorrelationMiddleware, CorrelationInterceptor],
-  exports: [CorrelationService, CorrelationMiddleware, CorrelationInterceptor],
+    providers: [CorrelationService, CorrelationMiddleware, CorrelationInterceptor],
+    exports: [CorrelationService, CorrelationMiddleware, CorrelationInterceptor],
 })
 export class CorrelationModule {}

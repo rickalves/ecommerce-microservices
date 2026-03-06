@@ -1,4 +1,5 @@
 Crie um consumer NestJS para RabbitMQ:
+
 - validação do contrato recebido
 - idempotência (processed_messages)
 - retry + DLQ (descrever estratégia)

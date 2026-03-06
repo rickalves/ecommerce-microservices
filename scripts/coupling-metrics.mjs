@@ -75,7 +75,7 @@ let graphJson;
 try {
     graphJson = execSync(
         'npx depcruise --config .dependency-cruiser.cjs --output-type json apps packages',
-        { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
 } catch (e) {
     // depcruise exits 1 when violations are found — output is still valid JSON on stdout
@@ -223,7 +223,8 @@ function scanConnascence() {
                 }
 
                 // CoT — Connascence of Type: exported interfaces / DTOs
-                const typeExports = content.match(/^\s*export\s+(interface|class|type)\s+\w+/gm) || [];
+                const typeExports =
+                    content.match(/^\s*export\s+(interface|class|type)\s+\w+/gm) || [];
                 if (typeExports.length > 0) {
                     results.CoT.push({ file: rel, exports: typeExports.map((l) => l.trim()) });
                 }
@@ -283,8 +284,8 @@ if (JSON_OUTPUT) {
                 connascence,
             },
             null,
-            2,
-        ),
+            2
+        )
     );
     process.exit(0);
 }
@@ -319,18 +320,34 @@ console.log(color(C.bold, `╔${'═'.repeat(W)}╗`));
 console.log(
     color(C.bold, `║`) +
         color(C.bold + C.white, pad('  COUPLING METRICS — Ecommerce Microservices', W, false)) +
-        color(C.bold, '║'),
+        color(C.bold, '║')
 );
 console.log(
     color(C.bold, `║`) +
-        color(C.dim, pad(`  Robert C. Martin Package Metrics  •  ${new Date().toISOString().slice(0, 10)}`, W)) +
-        color(C.bold, '║'),
+        color(
+            C.dim,
+            pad(
+                `  Robert C. Martin Package Metrics  •  ${new Date().toISOString().slice(0, 10)}`,
+                W
+            )
+        ) +
+        color(C.bold, '║')
 );
 console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
 console.log(
     color(C.bold, '║') +
-        color(C.bold, '  ' + pad('Package / Layer', 36) + pad('Ca', 5) + pad('Ce', 5) + pad('I', 8) + pad('A', 7) + pad('D', 7) + pad('Zone', 13)) +
-        color(C.bold, '║'),
+        color(
+            C.bold,
+            '  ' +
+                pad('Package / Layer', 36) +
+                pad('Ca', 5) +
+                pad('Ce', 5) +
+                pad('I', 8) +
+                pad('A', 7) +
+                pad('D', 7) +
+                pad('Zone', 13)
+        ) +
+        color(C.bold, '║')
 );
 console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
 
@@ -353,12 +370,17 @@ for (const m of metrics) {
             color(C.dim, pad(aStr, 7)) +
             color(C.dim, pad(dStr, 7)) +
             pad(zoneLabel(m.I, m.D), 13) +
-            '║',
+            '║'
     );
 
     // ── Layer rows (only for app services with DDD layers)
     if (isApp) {
-        const layerSymbols = { domain: '◆', application: '◇', infrastructure: '▲', presentation: '▽' };
+        const layerSymbols = {
+            domain: '◆',
+            application: '◇',
+            infrastructure: '▲',
+            presentation: '▽',
+        };
         for (const layer of DDD_LAYERS) {
             const l = m.layers[layer];
             if (!l || (l.ca === 0 && l.ce === 0)) continue;
@@ -372,7 +394,7 @@ for (const m of metrics) {
                     color(C.dim, pad('  —', 7)) +
                     color(C.dim, pad('  —', 7)) +
                     color(C.dim, pad('', 13)) +
-                    '║',
+                    '║'
             );
         }
     }
@@ -389,7 +411,7 @@ const totalCoV = connascence.CoV.reduce((s, f) => s + f.count, 0);
 console.log(
     color(C.bold, '║') +
         color(C.bold, pad('  CONNASCENCE — @ecommerce/shared surface area', W)) +
-        color(C.bold, '║'),
+        color(C.bold, '║')
 );
 console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
 console.log(
@@ -397,35 +419,35 @@ console.log(
         color(C.cyan, `CoN (Name)     `) +
         `${totalCoN} shared identifiers (event names, queue keys, command strings)  ` +
         ' '.repeat(Math.max(0, W - 66)) +
-        '║',
+        '║'
 );
 console.log(
     `║  ` +
         color(C.cyan, `CoT (Type)     `) +
         `${totalCoT} exported types/DTOs/interfaces shared across service boundaries  ` +
         ' '.repeat(Math.max(0, W - 67)) +
-        '║',
+        '║'
 );
 console.log(
     `║  ` +
         color(C.cyan, `CoV (Value)    `) +
         `${totalCoV} exported constants (queue names, retry limits, config values)   ` +
         ' '.repeat(Math.max(0, W - 67)) +
-        '║',
+        '║'
 );
 
 // ─── Violations section ───────────────────────────────────────────────────────
 
 console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
 console.log(
-    color(C.bold, '║') +
-        color(C.bold, pad('  ARCHITECTURAL VIOLATIONS', W)) +
-        color(C.bold, '║'),
+    color(C.bold, '║') + color(C.bold, pad('  ARCHITECTURAL VIOLATIONS', W)) + color(C.bold, '║')
 );
 console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
 
 if (violations.length === 0) {
-    console.log(`║  ${color(C.green, '✓')} No architectural violations found${' '.repeat(W - 37)}║`);
+    console.log(
+        `║  ${color(C.green, '✓')} No architectural violations found${' '.repeat(W - 37)}║`
+    );
 } else {
     totalViolations = violations.length;
     for (const v of violations) {
@@ -439,19 +461,23 @@ if (violations.length === 0) {
 const recs = [];
 for (const m of metrics) {
     if (m.ce > 5)
-        recs.push(`[Ce=${m.ce}] ${m.pkg}: High efferent coupling — consider splitting responsibilities`);
+        recs.push(
+            `[Ce=${m.ce}] ${m.pkg}: High efferent coupling — consider splitting responsibilities`
+        );
     if (m.ca > 4 && m.I > 0.5)
-        recs.push(`[Ca=${m.ca}, I=${m.I}] ${m.pkg}: Many dependents + high instability — risky to change`);
+        recs.push(
+            `[Ca=${m.ca}, I=${m.I}] ${m.pkg}: Many dependents + high instability — risky to change`
+        );
     if (m.D !== null && m.D > 0.3)
-        recs.push(`[D=${m.D}] ${m.pkg}: Far from Main Sequence — rebalance abstractness vs instability`);
+        recs.push(
+            `[D=${m.D}] ${m.pkg}: Far from Main Sequence — rebalance abstractness vs instability`
+        );
 }
 
 if (recs.length > 0) {
     console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
     console.log(
-        color(C.bold, '║') +
-            color(C.bold, pad('  RECOMMENDATIONS', W)) +
-            color(C.bold, '║'),
+        color(C.bold, '║') + color(C.bold, pad('  RECOMMENDATIONS', W)) + color(C.bold, '║')
     );
     console.log(color(C.bold, `╠${'═'.repeat(W)}╣`));
     for (const rec of recs) {
@@ -468,7 +494,9 @@ console.log(color(C.dim, '    Ca = Afferent Coupling   Ce = Efferent Coupling'))
 console.log(color(C.dim, '    I  = Instability (0=stable, 1=unstable)'));
 console.log(color(C.dim, '    A  = Abstractness (interfaces+abstract / total classes)'));
 console.log(color(C.dim, '    D  = Distance from Main Sequence |A+I-1| (0=ideal)'));
-console.log(color(C.dim, '    Main Sequence: stable packages should be abstract; unstable ones concrete'));
+console.log(
+    color(C.dim, '    Main Sequence: stable packages should be abstract; unstable ones concrete')
+);
 console.log();
 
 process.exit(totalViolations > 0 ? 1 : 0);

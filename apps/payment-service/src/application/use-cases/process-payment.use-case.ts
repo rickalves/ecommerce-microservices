@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreatePaymentDto, PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent } from '@ecommerce/shared';
+import {
+    CreatePaymentDto,
+    PaymentInitiatedEvent,
+    PaymentCompletedEvent,
+    PaymentFailedEvent,
+} from '@ecommerce/shared';
 import { ClientProxy } from '@nestjs/microservices';
 import { MetricsService } from '@ecommerce/observability';
 
@@ -13,12 +18,14 @@ export class ProcessPaymentUseCase {
         @Inject(PAYMENT_REPOSITORY)
         private readonly paymentRepository: IPaymentRepository,
         @Inject('EVENT_BUS') private readonly eventBus: ClientProxy,
-        private readonly metrics: MetricsService,
+        private readonly metrics: MetricsService
     ) {}
 
     async execute(createPaymentDto: CreatePaymentDto): Promise<Payment> {
         // Verifica se já existe pagamento para este pedido
-        const existingPayment = await this.paymentRepository.findByOrderId(createPaymentDto.orderId);
+        const existingPayment = await this.paymentRepository.findByOrderId(
+            createPaymentDto.orderId
+        );
         if (existingPayment) {
             throw new Error('Payment already exists for this order');
         }

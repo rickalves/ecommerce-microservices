@@ -80,9 +80,9 @@ pnpm dev
 
 ```json
 {
-  "name": "Maria Santos",
-  "email": "maria@email.com",
-  "password": "senha123"
+    "name": "Maria Santos",
+    "email": "maria@email.com",
+    "password": "senha123"
 }
 ```
 
@@ -358,6 +358,7 @@ curl -s http://localhost:3000/orders/user/$USER_ID | jq
 Acesse: http://localhost:3000/api/docs
 
 **Vantagens:**
+
 - ✅ Já está configurado no projeto
 - ✅ Documentação sempre atualizada
 - ✅ Suporte nativo para autenticação JWT
@@ -365,6 +366,7 @@ Acesse: http://localhost:3000/api/docs
 - ✅ Ver esquemas de dados e validações
 
 **Como usar:**
+
 1. Acesse /api/docs
 2. Use `/auth/register` ou `/auth/login`
 3. Copie o `accessToken`
@@ -387,6 +389,7 @@ Se preferir usar ferramentas externas:
 ```
 
 **Configurar Auth:**
+
 - Type: Bearer Token
 - Token: (cole o accessToken da resposta)
 
@@ -536,6 +539,7 @@ Acesse: http://localhost:15672
 - **Senha:** guest
 
 **O que você pode fazer:**
+
 - Ver mensagens em filas
 - Monitorar exchanges
 - Ver conexões ativas

@@ -24,10 +24,10 @@ Autenticação JWT centralizada exclusivamente no **API Gateway**, usando `@nest
 
 ### Arquitetura de tokens
 
-| Token | Duração | Finalidade |
-|-------|---------|-----------|
-| Access Token | 15 minutos | Autenticação de requisições |
-| Refresh Token | 7 dias | Renovação do Access Token |
+| Token         | Duração    | Finalidade                  |
+| ------------- | ---------- | --------------------------- |
+| Access Token  | 15 minutos | Autenticação de requisições |
+| Refresh Token | 7 dias     | Renovação do Access Token   |
 
 ### Fluxo de autenticação
 
@@ -47,12 +47,14 @@ Cliente → GET /orders (com Bearer token) → API Gateway
 ### Responsabilidades por camada
 
 **API Gateway (autenticação):**
+
 - Validação da assinatura e expiração do JWT
 - Extração do `userId` e `roles` do payload
 - Propagação via headers internos (`x-user-id`, `x-user-roles`)
 - Endpoint `/auth/refresh` para renovação de tokens
 
 **Serviços internos (autorização):**
+
 - Confiam no header `x-user-id` propagado pelo Gateway
 - Aplicam regras de negócio (ex: usuário só pode ver seus próprios pedidos)
 - Não validam tokens JWT diretamente
@@ -63,16 +65,16 @@ Cliente → GET /orders (com Bearer token) → API Gateway
 // jwt.strategy.ts
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: configService.get('JWT_SECRET'),
-    });
-  }
+    constructor(configService: ConfigService) {
+        super({
+            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: configService.get('JWT_SECRET'),
+        });
+    }
 
-  async validate(payload: JwtPayload) {
-    return { userId: payload.sub, email: payload.email };
-  }
+    async validate(payload: JwtPayload) {
+        return { userId: payload.sub, email: payload.email };
+    }
 }
 
 // jwt-auth.guard.ts
@@ -85,21 +87,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {}
 ## Alternativas consideradas
 
 ### 1. Sessões com Redis
+
 - **Prós:** Revogação imediata, sem estado no token
 - **Contras:** Dependência de Redis, latência adicional em toda requisição, complexidade operacional
 - **Decisão:** Rejeitado — adiciona infraestrutura sem benefício proporcional para o estágio atual
 
 ### 2. OAuth2 / OIDC (ex: Keycloak)
+
 - **Prós:** Padrão da indústria, SSO, delegação de identidade
 - **Contras:** Overhead operacional alto, complexidade desproporcional para o projeto
 - **Decisão:** Rejeitado para o estágio atual — pode ser adotado no futuro
 
 ### 3. Autenticação distribuída (cada serviço valida JWT)
+
 - **Prós:** Gateway stateless sem concentrar responsabilidade
 - **Contras:** Duplicação de lógica, risco de inconsistência, secret compartilhado entre serviços
 - **Decisão:** Rejeitado — viola o princípio de responsabilidade única
 
 ### 4. Basic Auth
+
 - **Prós:** Simples
 - **Contras:** Credenciais em cada requisição, sem controle de sessão, não escalável
 - **Decisão:** Rejeitado completamente
@@ -109,15 +115,17 @@ export class JwtAuthGuard extends AuthGuard('jwt') {}
 ## Consequências
 
 ### Positivas
+
 - Lógica de autenticação em um único lugar — fácil manutenção
 - Serviços internos ficam simples e focados no domínio
 - Mudança de estratégia de auth impacta somente o API Gateway
 - Tokens stateless — sem consulta ao banco por requisição
 
 ### Negativas / Trade-offs
+
 - API Gateway é o **Single Point of Failure** para autenticação
 - Tokens Access não são revogáveis antes do vencimento (15 min)
-  - Mitigação: Refresh Tokens de curta duração relativa + denylist no Redis (futuro)
+    - Mitigação: Refresh Tokens de curta duração relativa + denylist no Redis (futuro)
 - Serviços internos confiam implicitamente no Gateway — comunicação interna deve ser restringida por rede (Docker network)
 
 ---

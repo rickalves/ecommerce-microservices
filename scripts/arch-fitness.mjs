@@ -63,7 +63,7 @@ function loadGraph() {
     try {
         raw = execSync(
             'npx depcruise --config .dependency-cruiser.cjs --output-type json apps packages',
-            { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+            { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
         );
     } catch (e) {
         raw = e.stdout || '{}';
@@ -76,8 +76,14 @@ function loadGraph() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fwd = (p) => p.replace(/\\/g, '/');
-const pkgFrom = (p) => { const m = fwd(p).match(/^(apps\/[^/]+|packages\/[^/]+)\//); return m?.[1]; };
-const layerFrom = (p) => { const m = fwd(p).match(/\/src\/(domain|application|infrastructure|presentation)\//); return m?.[1]; };
+const pkgFrom = (p) => {
+    const m = fwd(p).match(/^(apps\/[^/]+|packages\/[^/]+)\//);
+    return m?.[1];
+};
+const layerFrom = (p) => {
+    const m = fwd(p).match(/\/src\/(domain|application|infrastructure|presentation)\//);
+    return m?.[1];
+};
 
 function violationsByRule(ruleName) {
     return violations.filter((v) => v.rule.name === ruleName);
@@ -92,7 +98,10 @@ function buildDepMap() {
         const from = pkgFrom(mod.source);
         if (from) pkgs.add(from);
     }
-    for (const pkg of pkgs) { ceMap[pkg] = new Set(); caMap[pkg] = new Set(); }
+    for (const pkg of pkgs) {
+        ceMap[pkg] = new Set();
+        caMap[pkg] = new Set();
+    }
 
     for (const mod of graph.modules || []) {
         const from = pkgFrom(mod.source);
@@ -135,7 +144,7 @@ function ff01_dddLayerConstraints() {
             hits.length === 0,
             label,
             `${label} (${hits.length} violation${hits.length > 1 ? 's' : ''})`,
-            hits.map((h) => `${h.from} → ${h.to}`),
+            hits.map((h) => `${h.from} → ${h.to}`)
         );
     }
 }
@@ -162,7 +171,7 @@ function ff02_noCrossServiceImports() {
             hits.length === 0,
             label,
             `${label} — ${hits.length} direct import(s) detected`,
-            hits.map((h) => `${h.from} → ${h.to}`),
+            hits.map((h) => `${h.from} → ${h.to}`)
         );
     }
 }
@@ -180,7 +189,7 @@ function ff03_noCircularDependencies() {
         hits.length === 0,
         'No circular dependencies found',
         `${hits.length} circular dependency chain(s) detected`,
-        hits.map((h) => `${h.from} → ${h.to}`),
+        hits.map((h) => `${h.from} → ${h.to}`)
     );
 }
 
@@ -207,7 +216,7 @@ function ff04_sharedPackageStability() {
             I <= THRESHOLD,
             `${pkg}: I=${I.toFixed(2)} (Ca=${ca}, Ce=${ce}) — within stability threshold`,
             `${pkg}: I=${I.toFixed(2)} exceeds threshold ${THRESHOLD} — package is too unstable for a shared dependency`,
-            [`Ca=${ca} (dependents)  Ce=${ce} (dependencies)  I=${I.toFixed(2)}`],
+            [`Ca=${ca} (dependents)  Ce=${ce} (dependencies)  I=${I.toFixed(2)}`]
         );
     }
 }
@@ -249,7 +258,7 @@ function ff05_domainLayerIsolation() {
             offenders.length === 0,
             `${svc}/domain — Ce=0, no outward layer imports`,
             `${svc}/domain — outward imports detected`,
-            offenders,
+            offenders
         );
     }
 }
@@ -281,7 +290,7 @@ function ff06_applicationUsesInterfaces() {
         leaks.length === 0,
         'Application layer uses only domain interfaces — no infrastructure leaks',
         `Application layer references infrastructure directly (${leaks.length} occurrence${leaks.length > 1 ? 's' : ''})`,
-        leaks,
+        leaks
     );
 }
 
@@ -298,13 +307,13 @@ function ff07_efferentCouplingThreshold() {
 
     for (const [pkg, deps] of Object.entries(ceMap)) {
         const internalDeps = [...deps].filter(
-            (d) => d.startsWith('apps/') || d.startsWith('packages/'),
+            (d) => d.startsWith('apps/') || d.startsWith('packages/')
         );
         assert(
             internalDeps.length <= THRESHOLD,
             `${pkg}: Ce=${internalDeps.length} — within threshold`,
             `${pkg}: Ce=${internalDeps.length} exceeds threshold ${THRESHOLD}`,
-            internalDeps.map((d) => `  depends on ${d}`),
+            internalDeps.map((d) => `  depends on ${d}`)
         );
     }
 }
@@ -312,15 +321,9 @@ function ff07_efferentCouplingThreshold() {
 // ─── Run all fitness functions ────────────────────────────────────────────────
 
 console.log();
-console.log(
-    `${C.bold}╔════════════════════════════════════════════════════════════╗`,
-);
-console.log(
-    `║        Architectural Fitness Functions — Ecommerce         ║`,
-);
-console.log(
-    `╚════════════════════════════════════════════════════════════╝${C.reset}`,
-);
+console.log(`${C.bold}╔════════════════════════════════════════════════════════════╗`);
+console.log(`║        Architectural Fitness Functions — Ecommerce         ║`);
+console.log(`╚════════════════════════════════════════════════════════════╝${C.reset}`);
 
 loadGraph();
 
@@ -338,18 +341,14 @@ console.log();
 console.log('─'.repeat(64));
 
 if (totalFailed === 0) {
-    console.log(
-        `${C.bold}${C.green}  ✓ All ${totalPassed} fitness functions passed${C.reset}`,
-    );
-    console.log(
-        `${C.dim}  Architecture is healthy — no coupling violations detected${C.reset}`,
-    );
+    console.log(`${C.bold}${C.green}  ✓ All ${totalPassed} fitness functions passed${C.reset}`);
+    console.log(`${C.dim}  Architecture is healthy — no coupling violations detected${C.reset}`);
 } else {
     console.log(
-        `${C.bold}${C.red}  ✗ ${totalFailed} fitness function(s) FAILED  (${totalPassed} passed)${C.reset}`,
+        `${C.bold}${C.red}  ✗ ${totalFailed} fitness function(s) FAILED  (${totalPassed} passed)${C.reset}`
     );
     console.log(
-        `${C.dim}  Fix violations before merging to protect architectural integrity${C.reset}`,
+        `${C.dim}  Fix violations before merging to protect architectural integrity${C.reset}`
     );
 }
 

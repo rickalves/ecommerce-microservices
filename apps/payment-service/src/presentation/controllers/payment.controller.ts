@@ -22,77 +22,55 @@ export class PaymentController {
     constructor(
         private readonly processPaymentUseCase: ProcessPaymentUseCase,
         private readonly getPaymentUseCase: GetPaymentUseCase,
-        private readonly refundPaymentUseCase: RefundPaymentUseCase,
+        private readonly refundPaymentUseCase: RefundPaymentUseCase
     ) {}
 
     @EventPattern('order.created.accepted')
     async handleOrderCreatedAccepted(
         @Payload() data: OrderCreatedAcceptedEvent,
-        @Ctx() context: RmqContext,
+        @Ctx() context: RmqContext
     ) {
-        await this.processEvent(
-            context,
-            'order.created.accepted',
-            () => {
-                const { order } = data;
-                const createPaymentDto: CreatePaymentDto = {
-                    orderId: order.id,
-                    userId: order.userId,
-                    amount: order.totalAmount,
-                    method: 'CREDIT_CARD' as any,
-                };
-                return this.processPaymentUseCase.execute(createPaymentDto);
-            },
-        );
+        await this.processEvent(context, 'order.created.accepted', () => {
+            const { order } = data;
+            const createPaymentDto: CreatePaymentDto = {
+                orderId: order.id,
+                userId: order.userId,
+                amount: order.totalAmount,
+                method: 'CREDIT_CARD' as any,
+            };
+            return this.processPaymentUseCase.execute(createPaymentDto);
+        });
     }
 
     @EventPattern('payment.create')
     async handlePaymentCreate(
         @Payload() createPaymentDto: CreatePaymentDto,
-        @Ctx() context: RmqContext,
+        @Ctx() context: RmqContext
     ) {
-        await this.processEvent(
-            context,
-            'payment.create',
-            () => this.processPaymentUseCase.execute(createPaymentDto),
+        await this.processEvent(context, 'payment.create', () =>
+            this.processPaymentUseCase.execute(createPaymentDto)
         );
     }
 
     @EventPattern('payment.refund')
-    async refundPayment(
-        @Payload() paymentId: string,
-        @Ctx() context: RmqContext,
-    ) {
-        await this.processEvent(
-            context,
-            'payment.refund',
-            () => this.refundPaymentUseCase.execute(paymentId),
+    async refundPayment(@Payload() paymentId: string, @Ctx() context: RmqContext) {
+        await this.processEvent(context, 'payment.refund', () =>
+            this.refundPaymentUseCase.execute(paymentId)
         );
     }
 
     @EventPattern('order.cancelled')
-    async handleOrderCancelled(
-        @Payload() data: OrderCancelledEvent,
-        @Ctx() context: RmqContext,
-    ) {
-        await this.processEvent(
-            context,
-            'order.cancelled',
-            async () => {
-                const { orderId } = data;
-                const payment = await this.getPaymentUseCase.getPaymentByOrder(orderId);
-                if (payment && payment.status === 'COMPLETED') {
-                    await this.refundPaymentUseCase.execute(payment.id);
-                }
-            },
-        );
+    async handleOrderCancelled(@Payload() data: OrderCancelledEvent, @Ctx() context: RmqContext) {
+        await this.processEvent(context, 'order.cancelled', async () => {
+            const { orderId } = data;
+            const payment = await this.getPaymentUseCase.getPaymentByOrder(orderId);
+            if (payment && payment.status === 'COMPLETED') {
+                await this.refundPaymentUseCase.execute(payment.id);
+            }
+        });
     }
 
-    private async processEvent(
-        context: RmqContext,
-        pattern: string,
-        handler: () => unknown,
-    ) {
+    private async processEvent(context: RmqContext, pattern: string, handler: () => unknown) {
         const channel = context.getChannelRef() as Channel;
         const msg = context.getMessage() as ConsumeMessage;
 
@@ -104,15 +82,20 @@ export class PaymentController {
             const error = err instanceof Error ? err : new Error(String(err));
 
             if (retries >= MAX_RETRIES) {
-                console.error(`[PaymentService] Handler '${pattern}' falhou após ${MAX_RETRIES} tentativas. Enviando para DLQ.`, {
-                    pattern,
-                    error: error.message,
-                    retries,
-                });
+                console.error(
+                    `[PaymentService] Handler '${pattern}' falhou após ${MAX_RETRIES} tentativas. Enviando para DLQ.`,
+                    {
+                        pattern,
+                        error: error.message,
+                        retries,
+                    }
+                );
                 // ACK para remover da fila principal e publicar na DLQ com pattern dedicado
                 channel.ack(msg);
                 const originalData = (JSON.parse(msg.content.toString()) as { data: unknown }).data;
-                const dlqBuffer = Buffer.from(JSON.stringify({ pattern: 'dlq.message', data: originalData }));
+                const dlqBuffer = Buffer.from(
+                    JSON.stringify({ pattern: 'dlq.message', data: originalData })
+                );
                 channel.sendToQueue(QUEUES.PAYMENT_DLQ, dlqBuffer, {
                     persistent: true,
                     headers: {
@@ -122,10 +105,13 @@ export class PaymentController {
                     },
                 });
             } else {
-                console.warn(`[PaymentService] Handler '${pattern}' falhou. Agendando retry (${retries + 1}/${MAX_RETRIES}).`, {
-                    pattern,
-                    error: error.message,
-                });
+                console.warn(
+                    `[PaymentService] Handler '${pattern}' falhou. Agendando retry (${retries + 1}/${MAX_RETRIES}).`,
+                    {
+                        pattern,
+                        error: error.message,
+                    }
+                );
                 // NACK sem requeue → DLX roteia para retry queue com TTL
                 channel.nack(msg, false, false);
             }
@@ -133,9 +119,11 @@ export class PaymentController {
     }
 
     private getRetryCount(msg: ConsumeMessage): number {
-        const deaths = msg.properties.headers?.['x-death'] as Array<{ queue: string; count: number }> | undefined;
+        const deaths = msg.properties.headers?.['x-death'] as
+            | Array<{ queue: string; count: number }>
+            | undefined;
         if (!deaths?.length) return 0;
-        const retryDeath = deaths.find(d => d.queue === QUEUES.PAYMENT_RETRY);
+        const retryDeath = deaths.find((d) => d.queue === QUEUES.PAYMENT_RETRY);
         return retryDeath?.count ?? 0;
     }
 }

@@ -20,4 +20,3 @@ export * from './events/payment.events';
 
 // Messaging Config
 export * from './messaging/queue-config';
-

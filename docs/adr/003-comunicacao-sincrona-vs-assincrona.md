@@ -36,6 +36,7 @@ Adotaremos **Command Query Responsibility Segregation (CQRS)** de forma pragmát
 #### 📖 QUERIES (Leitura) - Comunicação SÍNCRONA
 
 **Quando usar:**
+
 - ✅ Buscar dados existentes (GET)
 - ✅ Cliente precisa da resposta imediatamente
 - ✅ Validações em tempo real
@@ -44,6 +45,7 @@ Adotaremos **Command Query Responsibility Segregation (CQRS)** de forma pragmát
 **Protocolo:** `send()` com RabbitMQ (request-response) ou HTTP direto
 
 **Exemplos:**
+
 ```typescript
 // ✅ Consultar status de pedido
 GET /orders/:id → return orderService.send('order.get', id)
@@ -59,20 +61,21 @@ GET /users/:id/balance → return userService.send('user.get_balance', id)
 ```
 
 **Vantagens:**
+
 - Cliente recebe resposta imediata
 - Mais simples de debugar
 - UX melhor (sem loading eterno)
 
 **Desvantagens:**
+
 - Acoplamento temporal (serviço precisa estar UP)
 - Latência de rede somada
 - Pode criar cascatas de falhas
 
-
-
 #### ⚡ COMMANDS (Escrita) - Comunicação ASSÍNCRONA
 
 **Quando usar:**
+
 - ✅ Criar/Atualizar/Deletar dados (POST/PUT/PATCH/DELETE)
 - ✅ Operações que envolvem múltiplos serviços
 - ✅ Workflows distribuídos (saga patterns)
@@ -82,6 +85,7 @@ GET /users/:id/balance → return userService.send('user.get_balance', id)
 **Protocolo:** `emit()` com RabbitMQ (fire-and-forget) + eventos de domínio
 
 **Exemplos:**
+
 ```typescript
 // ✅ Criar pedido (envolve validação de estoque, reserva de produto)
 POST /orders → orderService.emit('order.created', data)
@@ -104,17 +108,17 @@ PATCH /orders/:id/cancel → orderService.emit('order.cancel', id)
 ```
 
 **Vantagens:**
+
 - Desacoplamento temporal (serviços podem estar offline temporariamente)
 - Alta escalabilidade (fila absorve picos)
 - Retries automáticos (DLQ)
 - Performance melhor para cliente (resposta HTTP imediata)
 
 **Desvantagens:**
+
 - Eventual consistency (status pode estar temporariamente inconsistente)
 - Mais complexo de debugar (rastreamento distribuído necessário)
 - Cliente precisa polling ou webhooks para saber resultado
-
-
 
 ---
 
@@ -122,12 +126,12 @@ PATCH /orders/:id/cancel → orderService.emit('order.cancel', id)
 
 ### Benchmark Comparativo
 
-| Métrica | RPC (RabbitMQ) | REST (HTTP) | Diferença |
-|---------|---------------|-------------|-----------|
-| Latência média | 15-30ms | 5-15ms | HTTP 2x mais rápido |
-| Throughput | 3,000 req/s | 10,000 req/s | HTTP 3x maior |
-| Overhead | Alto (serialização, fila) | Baixo (direto) | - |
-| Resiliência | Alta (retries automáticos) | Média (circuit breaker manual) | - |
+| Métrica        | RPC (RabbitMQ)             | REST (HTTP)                    | Diferença           |
+| -------------- | -------------------------- | ------------------------------ | ------------------- |
+| Latência média | 15-30ms                    | 5-15ms                         | HTTP 2x mais rápido |
+| Throughput     | 3,000 req/s                | 10,000 req/s                   | HTTP 3x maior       |
+| Overhead       | Alto (serialização, fila)  | Baixo (direto)                 | -                   |
+| Resiliência    | Alta (retries automáticos) | Média (circuit breaker manual) | -                   |
 
 ### 🎯 Recomendação: Híbrido
 
@@ -161,53 +165,51 @@ PATCH /orders/:id/cancel → orderService.emit('order.cancel', id)
 ```typescript
 // API Gateway app.module.ts - Usar ambos
 ClientsModule.register([
-  // REST HTTP para queries
-  {
-    name: 'ORDER_SERVICE_HTTP',
-    transport: Transport.TCP,
-    options: {
-      host: 'order-service',
-      port: 3002,
+    // REST HTTP para queries
+    {
+        name: 'ORDER_SERVICE_HTTP',
+        transport: Transport.TCP,
+        options: {
+            host: 'order-service',
+            port: 3002,
+        },
     },
-  },
-  // RabbitMQ para commands
-  {
-    name: 'ORDER_SERVICE_EVENTS',
-    transport: Transport.RMQ,
-    options: {
-      urls: ['amqp://rabbitmq:5672'],
-      queue: 'order_queue',
+    // RabbitMQ para commands
+    {
+        name: 'ORDER_SERVICE_EVENTS',
+        transport: Transport.RMQ,
+        options: {
+            urls: ['amqp://rabbitmq:5672'],
+            queue: 'order_queue',
+        },
     },
-  },
-])
+]);
 ```
 
 ```typescript
 // API Gateway orders.controller.ts
 @Controller('orders')
 export class OrdersController {
-  constructor(
-    @Inject('ORDER_SERVICE_HTTP') private httpClient: ClientProxy,
-    @Inject('ORDER_SERVICE_EVENTS') private eventClient: ClientProxy,
-  ) {}
+    constructor(
+        @Inject('ORDER_SERVICE_HTTP') private httpClient: ClientProxy,
+        @Inject('ORDER_SERVICE_EVENTS') private eventClient: ClientProxy
+    ) {}
 
-  // ✅ Query - Síncrono via HTTP/TCP
-  @Get(':id')
-  async getOrder(@Param('id') id: string) {
-    return firstValueFrom(
-      this.httpClient.send('order.get', id)
-    );
-  }
+    // ✅ Query - Síncrono via HTTP/TCP
+    @Get(':id')
+    async getOrder(@Param('id') id: string) {
+        return firstValueFrom(this.httpClient.send('order.get', id));
+    }
 
-  // ✅ Command - Assíncrono via RabbitMQ
-  @Post()
-  async createOrder(@Body() dto: CreateOrderDto) {
-    this.eventClient.emit('order.created', dto);
-    return {
-      status: 'accepted',
-      message: 'Order is being processed'
-    };
-  }
+    // ✅ Command - Assíncrono via RabbitMQ
+    @Post()
+    async createOrder(@Body() dto: CreateOrderDto) {
+        this.eventClient.emit('order.created', dto);
+        return {
+            status: 'accepted',
+            message: 'Order is being processed',
+        };
+    }
 }
 ```
 
@@ -218,6 +220,7 @@ export class OrdersController {
 ### Problema: "Como ver ordens criadas e seu status?"
 
 **❌ Anti-pattern: Emitir evento e esperar**
+
 ```typescript
 // NÃO FAÇA ISSO
 @Get(':id/status')
@@ -229,28 +232,30 @@ async getStatus(@Param('id') id: string) {
 ```
 
 **✅ Pattern correto: Endpoint HTTP síncrono**
+
 ```typescript
 // Order Service - Expor endpoint HTTP direto
 @Controller('orders')
 export class OrderController {
-  @Get(':id')
-  async getOrder(@Param('id') id: string): Promise<OrderResponseDto> {
-    const order = await this.orderRepository.findOne(id);
-    if (!order) throw new NotFoundException();
-    return order;
-  }
-
-  @Get()
-  async listOrders(@Query('userId') userId?: string) {
-    if (userId) {
-      return this.orderRepository.findByUserId(userId);
+    @Get(':id')
+    async getOrder(@Param('id') id: string): Promise<OrderResponseDto> {
+        const order = await this.orderRepository.findOne(id);
+        if (!order) throw new NotFoundException();
+        return order;
     }
-    return this.orderRepository.findAll();
-  }
+
+    @Get()
+    async listOrders(@Query('userId') userId?: string) {
+        if (userId) {
+            return this.orderRepository.findByUserId(userId);
+        }
+        return this.orderRepository.findAll();
+    }
 }
 ```
 
 **✅ Alternative: RPC via RabbitMQ com send()**
+
 ```typescript
 // Se já usa RabbitMQ, pode usar send() para request-response
 @MessagePattern('order.get') // Responde com reply
@@ -296,19 +301,20 @@ Response: {
 ```
 
 **Frontend:**
+
 ```typescript
 async function createAndTrackOrder(orderData) {
-  // 1. Criar pedido (async)
-  const { orderId } = await api.post('/orders', orderData);
+    // 1. Criar pedido (async)
+    const { orderId } = await api.post('/orders', orderData);
 
-  // 2. Polling até completar
-  let order;
-  do {
-    await sleep(2000); // espera 2s
-    order = await api.get(`/orders/${orderId}`);
-  } while (order.status === 'processing');
+    // 2. Polling até completar
+    let order;
+    do {
+        await sleep(2000); // espera 2s
+        order = await api.get(`/orders/${orderId}`);
+    } while (order.status === 'processing');
 
-  return order;
+    return order;
 }
 ```
 
@@ -362,6 +368,7 @@ async handlePaymentCompleted(data: PaymentCompletedEvent) {
 ### ❌ Casos onde assíncrono NÃO é ideal:
 
 1. **Login/Autenticação**
+
 ```typescript
 // ❌ Errado - User precisa de token AGORA
 POST /auth/login → userService.emit('user.login', credentials)
@@ -371,6 +378,7 @@ POST /auth/login → return userService.send('user.login', credentials)
 ```
 
 2. **Validações que bloqueiam a operação**
+
 ```typescript
 // ❌ Errado - Precisa saber se cartão é válido antes de prosseguir
 POST /payments → paymentService.emit('payment.validate_card', card)
@@ -381,6 +389,7 @@ if (!isValid) throw new BadRequestException('Invalid card');
 ```
 
 3. **Reads simples (GET)**
+
 ```typescript
 // ❌ Nunca faça isso
 GET /orders/:id → orderService.emit('order.get', id) // Como recebe resposta?
@@ -415,6 +424,7 @@ async createOrderSync(@Body() dto: CreateOrderDto) {
 ```
 
 **Problemas:**
+
 - 🐌 Latência somada (network calls sequenciais)
 - 💥 Falha em qualquer serviço quebra toda a operação
 - 🔗 Alto acoplamento
@@ -442,11 +452,13 @@ async createOrderAsync(@Body() dto: CreateOrderDto) {
 ```
 
 **Vantagens:**
+
 - ⚡ Resposta instantânea ao cliente
 - 🔄 Retries automáticos se serviço cair
 - 📈 Alta escalabilidade
 
 **Problemas:**
+
 - ⏰ Status temporariamente inconsistente
 - 🤔 Cliente precisa polling ou webhook
 - 🧩 Mais complexo de debugar
@@ -461,33 +473,31 @@ async createOrderAsync(@Body() dto: CreateOrderDto) {
 // ✅ HTTP/TCP para queries (síncrono)
 @Controller('orders')
 export class OrderController {
-  @Get(':id')
-  async getOrder(@Param('id') id: string) {
-    return this.orderService.findById(id);
-  }
+    @Get(':id')
+    async getOrder(@Param('id') id: string) {
+        return this.orderService.findById(id);
+    }
 
-  @Get()
-  async listOrders(@Query('userId') userId?: string) {
-    return userId
-      ? this.orderService.findByUserId(userId)
-      : this.orderService.findAll();
-  }
+    @Get()
+    async listOrders(@Query('userId') userId?: string) {
+        return userId ? this.orderService.findByUserId(userId) : this.orderService.findAll();
+    }
 }
 
 // ✅ RabbitMQ para commands (assíncrono)
 @Controller()
 export class OrderEventHandler {
-  @EventPattern('order.created')
-  async handleOrderCreated(@Payload() data: CreateOrderDto) {
-    const order = await this.orderService.create(data);
-    this.eventBus.emit('order.created', order); // propagar
-  }
+    @EventPattern('order.created')
+    async handleOrderCreated(@Payload() data: CreateOrderDto) {
+        const order = await this.orderService.create(data);
+        this.eventBus.emit('order.created', order); // propagar
+    }
 
-  @EventPattern('order.cancel')
-  async handleOrderCancel(@Payload() orderId: string) {
-    await this.orderService.cancel(orderId);
-    this.eventBus.emit('order.cancelled', { orderId });
-  }
+    @EventPattern('order.cancel')
+    async handleOrderCancel(@Payload() orderId: string) {
+        await this.orderService.cancel(orderId);
+        this.eventBus.emit('order.cancelled', { orderId });
+    }
 }
 ```
 
@@ -497,36 +507,36 @@ export class OrderEventHandler {
 // ✅ HTTP para queries
 @Controller('payments')
 export class PaymentController {
-  @Get(':id')
-  async getPayment(@Param('id') id: string) {
-    return this.paymentService.findById(id);
-  }
+    @Get(':id')
+    async getPayment(@Param('id') id: string) {
+        return this.paymentService.findById(id);
+    }
 
-  @Get('order/:orderId')
-  async getPaymentByOrder(@Param('orderId') orderId: string) {
-    return this.paymentService.findByOrderId(orderId);
-  }
+    @Get('order/:orderId')
+    async getPaymentByOrder(@Param('orderId') orderId: string) {
+        return this.paymentService.findByOrderId(orderId);
+    }
 }
 
 // ✅ RabbitMQ para processamento (assíncrono)
 @Controller()
 export class PaymentEventHandler {
-  @EventPattern('payment.create')
-  async handlePaymentCreate(@Payload() data: CreatePaymentDto) {
-    const payment = await this.paymentService.process(data);
+    @EventPattern('payment.create')
+    async handlePaymentCreate(@Payload() data: CreatePaymentDto) {
+        const payment = await this.paymentService.process(data);
 
-    if (payment.status === 'completed') {
-      this.eventBus.emit('payment.completed', payment);
-    } else {
-      this.eventBus.emit('payment.failed', payment);
+        if (payment.status === 'completed') {
+            this.eventBus.emit('payment.completed', payment);
+        } else {
+            this.eventBus.emit('payment.failed', payment);
+        }
     }
-  }
 
-  @EventPattern('order.cancelled')
-  async handleOrderCancelled(@Payload() data: { orderId: string }) {
-    await this.paymentService.refund(data.orderId);
-    this.eventBus.emit('payment.refunded', data);
-  }
+    @EventPattern('order.cancelled')
+    async handleOrderCancelled(@Payload() data: { orderId: string }) {
+        await this.paymentService.refund(data.orderId);
+        this.eventBus.emit('payment.refunded', data);
+    }
 }
 ```
 
@@ -537,6 +547,7 @@ export class PaymentEventHandler {
 Com comunicação assíncrona, observabilidade é **OBRIGATÓRIA**:
 
 ### 1. Correlation ID
+
 ```typescript
 // Propagar ID através de todos eventos
 interface BaseEvent {
@@ -554,22 +565,24 @@ POST /orders (correlationId: abc-123)
 ```
 
 ### 2. Distributed Tracing
+
 - Jaeger para visualizar fluxo completo
 - Span por cada operação
 - Ver onde está o gargalo
 
 ### 3. Métricas
+
 ```typescript
 // Medir latência de processamento assíncrono
 histogram.observe({
-  event: 'order.created',
-  duration: endTime - startTime
+    event: 'order.created',
+    duration: endTime - startTime,
 });
 
 // Taxa de erro
 counter.inc({
-  event: 'payment.failed',
-  reason: error.message
+    event: 'payment.failed',
+    reason: error.message,
 });
 ```
 
@@ -578,6 +591,7 @@ counter.inc({
 ## Checklist de Implementação
 
 ### Queries (Síncronas)
+
 - [ ] Expor endpoints HTTP REST em cada microserviço
 - [ ] API Gateway chama via HTTP direto (ou TCP)
 - [ ] Timeout configurado (ex: 5s)
@@ -585,6 +599,7 @@ counter.inc({
 - [ ] Cache para queries frequentes (Redis)
 
 ### Commands (Assíncronas)
+
 - [ ] Emitir eventos via RabbitMQ
 - [ ] Propagar `correlationId` em todos eventos
 - [ ] Dead Letter Queue (DLQ) configurada
@@ -593,6 +608,7 @@ counter.inc({
 - [ ] Métricas de processamento
 
 ### Observabilidade
+
 - [ ] Correlation ID em todos logs e eventos
 - [ ] Traces distribuídos (Jaeger)
 - [ ] Métricas de latência P95/P99

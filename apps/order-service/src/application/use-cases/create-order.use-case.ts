@@ -13,7 +13,7 @@ export class CreateOrderUseCase {
         @Inject(ORDER_REPOSITORY)
         private readonly orderRepository: IOrderRepository,
         @Inject('EVENT_BUS') private readonly eventBus: ClientProxy,
-        private readonly metrics: MetricsService,
+        private readonly metrics: MetricsService
     ) {}
 
     async execute(createOrderDto: CreateOrderDto): Promise<Order> {

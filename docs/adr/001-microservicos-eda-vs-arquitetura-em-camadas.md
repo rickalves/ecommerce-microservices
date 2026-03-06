@@ -81,11 +81,11 @@ Os três contextos têm linguagens ubíquas distintas. O conceito de "pedido" no
 
 **Exemplos de eventos do sistema:**
 
-| Evento | Produtor | Consumidores |
-|--------|----------|--------------|
-| `order.created.accepted` | Order Service | Payment Service |
-| `payment.completed` | Payment Service | Order Service |
-| `payment.failed` | Payment Service | Order Service |
+| Evento                   | Produtor        | Consumidores    |
+| ------------------------ | --------------- | --------------- |
+| `order.created.accepted` | Order Service   | Payment Service |
+| `payment.completed`      | Payment Service | Order Service   |
+| `payment.failed`         | Payment Service | Order Service   |
 
 **Por que é necessário:**
 Com comunicação síncrona pura (RPC), o `Order Service` precisaria aguardar o `Payment Service` responder em tempo real durante a criação do pedido. Isso cria **acoplamento temporal**: se o `Payment Service` estiver lento ou indisponível, a criação de pedido falha junto. Em dias de alto volume (Black Friday), essa dependência se torna um ponto único de falha em cascata.
@@ -171,12 +171,14 @@ O perfil de carga de cada serviço é diferente. Em picos de vendas, o `Payment 
 **Descrição:** Uma única aplicação NestJS com módulos organizados por camada (Presentation → Application → Domain → Infrastructure) e um único banco PostgreSQL.
 
 **Prós:**
+
 - Desenvolvimento inicial mais rápido — sem necessidade de infraestrutura de mensageria
 - Transactions ACID entre domínios sem complexidade de Saga/consistência eventual
 - Debugging mais simples — stack trace único, sem rastreamento distribuído
 - Deploy simples — um único artefato
 
 **Contras:**
+
 - Acoplamento crescente — com o tempo, módulos tendem a se misturar
 - Escalar um componente exige escalar o sistema inteiro
 - Deploy de um módulo implica redeploy de toda a aplicação
@@ -191,10 +193,12 @@ O perfil de carga de cada serviço é diferente. Em picos de vendas, o `Payment 
 **Descrição:** Microserviços idênticos aos adotados, mas com comunicação exclusivamente síncrona via HTTP ou `send()` do NestJS Microservices.
 
 **Prós:**
+
 - Mais simples de raciocinar — chamada → resposta, sem estados intermediários
 - Sem fila para gerenciar, sem dead-letter queues, sem redelivery
 
 **Contras:**
+
 - Acoplamento temporal: uma falha no `Payment Service` afeta diretamente o `Order Service`
 - Latência composta: tempo de resposta = soma de todas as chamadas encadeadas
 - Dificulta fanout: para notificar múltiplos serviços de um evento, é necessário múltiplas chamadas síncronas
@@ -208,10 +212,12 @@ O perfil de carga de cada serviço é diferente. Em picos de vendas, o `Payment 
 **Descrição:** Cada caso de uso vira uma função serverless, sem servidores de longa duração.
 
 **Prós:**
+
 - Escala automática até zero
 - Custo proporcional ao uso real
 
 **Contras:**
+
 - Cold starts impactam a latência em APIs síncronas
 - Vendor lock-in com cloud provider
 - Estado e conexões de banco mais complexas de gerenciar (connection pooling)
@@ -224,6 +230,7 @@ O perfil de carga de cada serviço é diferente. Em picos de vendas, o `Payment 
 ## Consequências
 
 ### Positivas
+
 - Domínios evoluem de forma verdadeiramente independente — times podem trabalhar em paralelo sem conflitos de merge em domínios diferentes
 - Falhas são isoladas: o `User Service` fora do ar não impede a consulta de pedidos existentes
 - Escalabilidade cirúrgica por serviço conforme a demanda real
@@ -231,6 +238,7 @@ O perfil de carga de cada serviço é diferente. Em picos de vendas, o `Payment 
 - Base para implementação futura de Saga Pattern para transações distribuídas complexas
 
 ### Negativas / Trade-offs aceitos
+
 - Complexidade operacional elevada: gerenciar 4 serviços + 3 bancos + RabbitMQ requer Docker Compose robusto, health checks e estratégia de orquestração
 - Consistência eventual exige que o front-end e os clientes da API lidem com estados transitórios (ex.: `PENDING_PAYMENT`)
 - Rastreamento de bugs em produção requer observabilidade ativa (correlationId, logs estruturados) — implementada no ADR 002

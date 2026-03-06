@@ -1,4 +1,5 @@
 Gere descrição de MR/PR com:
+
 - Resumo (objetivo)
 - O que mudou (bullets)
 - Eventos/contratos afetados (se houver)
