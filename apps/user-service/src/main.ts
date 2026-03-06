@@ -13,14 +13,17 @@ async function bootstrap() {
     const logger = app.get(LoggerService);
     app.useLogger(logger);
 
-    // Configurar microservice TCP para comunicação interna
-    app.connectMicroservice<MicroserviceOptions>({
-        transport: Transport.TCP,
-        options: {
-            host: '0.0.0.0',
-            port: 4001, // Porta diferente para evitar conflito
+    // inheritAppConfig: true garante que APP_INTERCEPTOR, APP_GUARD, etc. sejam herdados
+    app.connectMicroservice<MicroserviceOptions>(
+        {
+            transport: Transport.TCP,
+            options: {
+                host: '0.0.0.0',
+                port: 4001,
+            },
         },
-    });
+        { inheritAppConfig: true }
+    );
 
     await app.startAllMicroservices();
     logger.info('User Service microservice listening on TCP port 4001');
