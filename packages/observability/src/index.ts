@@ -15,3 +15,9 @@ export * from './context/correlation.module';
 // Health
 export * from './health/health.controller';
 export * from './health/health.module';
+
+// Metrics
+export * from './metrics/metrics.service';
+export * from './metrics/metrics.controller';
+export * from './metrics/metrics.interceptor';
+export * from './metrics/metrics.module';

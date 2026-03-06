@@ -20,11 +20,8 @@ export class LoggerInterceptor implements NestInterceptor {
       return this.handleHttp(context, next, startTime);
     }
 
-    if (contextType === 'rpc') {
-      return this.handleRpc(context, next, startTime);
-    }
-
-    return next.handle();
+    // Trata 'rpc' e qualquer outro transporte de microserviço
+    return this.handleRpc(context, next, startTime);
   }
 
   private handleHttp(
@@ -77,8 +74,10 @@ export class LoggerInterceptor implements NestInterceptor {
   ): Observable<any> {
     const rpcContext = context.switchToRpc();
     const data = rpcContext.getData();
-    const pattern = rpcContext.getContext().pattern;
-    const eventType = typeof pattern === 'string' ? pattern : pattern?.cmd;
+    const ctx = rpcContext.getContext<{ getPattern?: () => string; pattern?: string }>();
+    const raw = ctx?.getPattern?.() ?? ctx?.pattern;
+    const eventType =
+      typeof raw === 'string' ? raw : (typeof raw === 'object' && raw !== null ? ((raw as any).cmd ?? 'unknown') : 'unknown');
 
     const correlationId = data?.correlationId;
 

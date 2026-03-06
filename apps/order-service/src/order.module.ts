@@ -22,6 +22,8 @@ import {
     CorrelationModule,
     CorrelationInterceptor,
     HealthModule,
+    MetricsModule,
+    MetricsInterceptor,
 } from '@ecommerce/observability';
 
 @Module({
@@ -30,6 +32,7 @@ import {
         LoggerModule.forRoot({ serviceName: 'order-service' }),
         CorrelationModule,
         HealthModule.forRoot({ database: true }),
+        MetricsModule.forRoot({ serviceName: 'order-service' }),
 
         TypeOrmModule.forFeature([OrderEntity]),
         ClientsModule.register([
@@ -67,6 +70,10 @@ import {
         {
             provide: APP_INTERCEPTOR,
             useClass: CorrelationInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: MetricsInterceptor,
         },
     ],
 })

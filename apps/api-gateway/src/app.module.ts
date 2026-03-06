@@ -17,6 +17,8 @@ import {
     CorrelationModule,
     CorrelationMiddleware,
     HealthModule,
+    MetricsModule,
+    MetricsInterceptor,
 } from '@ecommerce/observability';
 
 @Module({
@@ -25,6 +27,7 @@ import {
         LoggerModule.forRoot({ serviceName: 'api-gateway' }),
         CorrelationModule,
         HealthModule,
+        MetricsModule.forRoot({ serviceName: 'api-gateway' }),
 
         // HTTP Client para queries síncronas
         HttpModule.register({
@@ -85,6 +88,10 @@ import {
         {
             provide: APP_INTERCEPTOR,
             useClass: LoggerInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: MetricsInterceptor,
         },
     ],
 })

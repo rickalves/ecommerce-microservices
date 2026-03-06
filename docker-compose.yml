@@ -150,8 +150,46 @@ services:
             - ORDER_SERVICE_URL=http://order-service:3002
             - PAYMENT_SERVICE_URL=http://payment-service:3003
 
+    # === Camada 4: Observabilidade ===
+    prometheus:
+        image: prom/prometheus:v2.53.0
+        container_name: prometheus
+        ports:
+            - '9090:9090'
+        volumes:
+            - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - prometheus_data:/prometheus
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--storage.tsdb.retention.time=15d'
+            - '--web.enable-lifecycle'
+        depends_on:
+            - api-gateway
+            - order-service
+            - payment-service
+            - user-service
+
+    grafana:
+        image: grafana/grafana:11.1.0
+        container_name: grafana
+        ports:
+            - '3100:3000'
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+            - GF_USERS_ALLOW_SIGN_UP=false
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+            - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+        depends_on:
+            - prometheus
+
 volumes:
     postgres_users_data:
     postgres_orders_data:
     postgres_payments_data:
     rabbitmq_data:
+    prometheus_data:
+    grafana_data:

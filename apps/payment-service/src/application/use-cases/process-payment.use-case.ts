@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreatePaymentDto, PaymentInitiatedEvent, PaymentCompletedEvent, PaymentFailedEvent } from '@ecommerce/shared';
 import { ClientProxy } from '@nestjs/microservices';
+import { MetricsService } from '@ecommerce/observability';
 
 import { Payment } from '../../domain/entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '../../domain/repositories/payment.repository.interface';
@@ -11,7 +12,8 @@ export class ProcessPaymentUseCase {
     constructor(
         @Inject(PAYMENT_REPOSITORY)
         private readonly paymentRepository: IPaymentRepository,
-        @Inject('EVENT_BUS') private readonly eventBus: ClientProxy
+        @Inject('EVENT_BUS') private readonly eventBus: ClientProxy,
+        private readonly metrics: MetricsService,
     ) {}
 
     async execute(createPaymentDto: CreatePaymentDto): Promise<Payment> {
@@ -37,6 +39,7 @@ export class ProcessPaymentUseCase {
             payment: saved,
         };
         this.eventBus.emit('payment.initiated', initiatedEvent);
+        this.metrics.eventPublishedTotal.inc({ event_type: 'payment.initiated' });
 
         // Simula processamento do pagamento (em produção, integraria com gateway de pagamento)
         try {
@@ -60,6 +63,8 @@ export class ProcessPaymentUseCase {
                     payment: saved,
                 };
                 this.eventBus.emit('payment.completed', completedEvent);
+                this.metrics.eventPublishedTotal.inc({ event_type: 'payment.completed' });
+                this.metrics.paymentsProcessedTotal.inc({ status: 'completed' });
             } else {
                 saved.fail();
                 await this.paymentRepository.save(saved);
@@ -72,6 +77,8 @@ export class ProcessPaymentUseCase {
                     reason: 'Payment gateway declined the transaction',
                 };
                 this.eventBus.emit('payment.failed', failedEvent);
+                this.metrics.eventPublishedTotal.inc({ event_type: 'payment.failed' });
+                this.metrics.paymentsProcessedTotal.inc({ status: 'failed' });
             }
         } catch (error) {
             saved.fail();
@@ -84,6 +91,8 @@ export class ProcessPaymentUseCase {
                 reason: (error as Error).message,
             };
             this.eventBus.emit('payment.failed', failedEvent);
+            this.metrics.eventPublishedTotal.inc({ event_type: 'payment.failed' });
+            this.metrics.paymentsProcessedTotal.inc({ status: 'failed' });
         }
 
         return saved;
