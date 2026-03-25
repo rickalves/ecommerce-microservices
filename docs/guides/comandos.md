@@ -644,6 +644,53 @@ docker compose logs --tail=50 payment-service | grep traceId
 
 > Para mais detalhes sobre o stack de observabilidade, consulte o [Guia de Uso de Observabilidade](./observabilidade-uso.md).
 
+## 1️⃣1️⃣ Outbox Pattern
+
+### Inspecionar tabela outbox no order-service
+
+```bash
+docker exec postgres-orders psql -U order_service -d orders_db \
+  -c "SELECT event_type, status, attempts, created_at, published_at \
+      FROM outbox ORDER BY created_at DESC LIMIT 20;"
+```
+
+### Inspecionar tabela outbox no payment-service
+
+```bash
+docker exec postgres-payments psql -U payment_service -d payments_db \
+  -c "SELECT event_type, status, attempts, created_at, published_at \
+      FROM outbox ORDER BY created_at DESC LIMIT 20;"
+```
+
+### Verificar eventos com falha permanente (FAILED)
+
+```bash
+# order-service
+docker exec postgres-orders psql -U order_service -d orders_db \
+  -c "SELECT id, event_type, attempts, last_error FROM outbox WHERE status = 'FAILED';"
+
+# payment-service
+docker exec postgres-payments psql -U payment_service -d payments_db \
+  -c "SELECT id, event_type, attempts, last_error FROM outbox WHERE status = 'FAILED';"
+```
+
+### Ver logs do OutboxProcessor em tempo real
+
+```bash
+docker compose logs -f order-service | grep -i outbox
+docker compose logs -f payment-service | grep -i outbox
+```
+
+### Consultar estatísticas de publicação
+
+```bash
+# Contagem por status e tipo de evento
+docker exec postgres-orders psql -U order_service -d orders_db \
+  -c "SELECT event_type, status, COUNT(*) FROM outbox GROUP BY event_type, status ORDER BY event_type;"
+```
+
+> Para mais detalhes sobre a arquitetura do Outbox Pattern, consulte [outbox-pattern.md](../architecture/outbox-pattern.md).
+
 ## 🔟 Próximos Passos
 
 - ✅ ~~Adicionar banco de dados PostgreSQL~~ (Implementado!)
@@ -652,7 +699,7 @@ docker compose logs --tail=50 payment-service | grep traceId
 - ✅ ~~Configurar RabbitMQ~~ (Implementado!)
 - ✅ ~~Adicionar logging centralizado~~ (Implementado com nestjs-pino + Loki!)
 - ✅ ~~Implementar distributed tracing~~ (Implementado com OTel + Tempo!)
-- ⏳ Implementar Outbox Pattern (garantia transacional de eventos)
+- ✅ ~~Implementar Outbox Pattern~~ (Implementado! Garantia transacional em order-service e payment-service)
 - ⏳ Adicionar testes automatizados (unit + E2E)
 - ⏳ Implementar circuit breaker
 - ⏳ Implementar rate limiting

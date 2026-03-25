@@ -144,31 +144,45 @@ Responsabilidade: Implementações técnicas
 ### Criar Pedido
 
 ```
-1. Cliente → POST /orders
-2. API Gateway → Orders Controller
-3. Orders Controller → ORDER_SERVICE.send('create_order')
-4. Order Service → OrderController (RMQ)
-5. OrderController → CreateOrderUseCase
-6. CreateOrderUseCase → Order.create() (Entity)
-7. Order Entity → Calcula totalAmount
-8. TypeOrmOrderRepository → PostgreSQL (orders_db)
-9. UseCase → Publica evento 'order.created.accepted' no RabbitMQ
+1.  Cliente → POST /orders
+2.  API Gateway → Orders Controller
+3.  Orders Controller → ORDER_SERVICE.send('create_order')
+4.  Order Service → OrderController (RMQ)
+5.  OrderController → CreateOrderUseCase
+6.  CreateOrderUseCase → Order.create() (Entity)
+7.  Order Entity → Calcula totalAmount
+8.  TypeOrmOrderRepository.saveWithOutbox():
+      ┌── transaction ──────────────────────────────┐
+      │  em.save(OrderEntity)    → orders_db        │
+      │  em.save(OutboxEntity)   → outbox (PENDING) │
+      └─────────────────────────────────────────────┘
+9.  OutboxProcessor (background, 5 s):
+      SELECT outbox WHERE status='PENDING'
+      → eventBus.emit('order.created.accepted')
+      → UPDATE outbox SET status='PUBLISHED'
 10. Resposta volta pela cadeia inversa
 ```
 
-### Processar Pagamento (Event-Driven)
+### Processar Pagamento (Event-Driven + Outbox)
 
 ```
-1. Order Service → Publica 'order.created.accepted' no RabbitMQ
-2. Payment Service → Escuta evento 'order.created.accepted'
-3. PaymentController → ProcessPaymentUseCase
-4. ProcessPaymentUseCase → Payment.create() (Entity)
-5. Payment Entity → Simula processamento (90% success rate)
-6. TypeOrmPaymentRepository → PostgreSQL (payments_db)
-7. UseCase → Publica 'payment.completed' ou 'payment.failed'
-8. Order Service → Escuta evento de pagamento
-   - payment.completed → Confirma pedido (Status CONFIRMED)
-   - payment.failed → Cancela pedido (Status CANCELLED)
+1.  Order Service → OutboxProcessor publica 'order.created.accepted' no RabbitMQ
+2.  Payment Service → Escuta evento 'order.created.accepted'
+3.  PaymentController → ProcessPaymentUseCase
+4.  ProcessPaymentUseCase → Payment.create() (Entity)
+5.  Payment Entity → Simula processamento (90% success rate)
+6.  TypeOrmPaymentRepository.saveWithOutbox():
+      ┌── transaction ──────────────────────────────────┐
+      │  em.save(PaymentEntity)  → payments_db          │
+      │  em.save(OutboxEntity)   → outbox (PENDING)     │
+      │  event: payment.initiated / completed / failed  │
+      └─────────────────────────────────────────────────┘
+7.  OutboxProcessor (background, 5 s):
+      → eventBus.emit('payment.completed' ou 'payment.failed')
+      → UPDATE outbox SET status='PUBLISHED'
+8.  Order Service → Escuta evento de pagamento (idempotente):
+      - payment.completed → confirmOrder() → Status CONFIRMED
+      - payment.failed    → cancelOrder()  → Status CANCELLED
 ```
 
 ## 📦 Estrutura de Pacotes
