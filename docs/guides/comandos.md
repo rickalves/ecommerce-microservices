@@ -589,16 +589,72 @@ DB_PASSWORD=order_service_pass
 DB_DATABASE=orders_db
 ```
 
-## 9️⃣ Próximos Passos
+## 9️⃣ Observabilidade (OTel Stack)
+
+### Subir apenas infraestrutura de telemetria
+
+```bash
+docker compose up -d postgres-users postgres-orders postgres-payments rabbitmq \
+  prometheus grafana otel-collector tempo loki
+```
+
+### Verificar saúde de todos os serviços
+
+```bash
+curl http://localhost:3000/health   # api-gateway
+curl http://localhost:3001/health   # user-service
+curl http://localhost:3002/health   # order-service
+curl http://localhost:3003/health   # payment-service
+```
+
+### Ver métricas brutas (formato OpenMetrics)
+
+```bash
+curl -H "Accept: application/openmetrics-text" http://localhost:3000/metrics
+curl -H "Accept: application/openmetrics-text" http://localhost:3002/metrics
+```
+
+### Acessar interfaces de visualização
+
+| Interface       | URL                     | Credenciais    |
+| --------------- | ----------------------- | -------------- |
+| Grafana         | http://localhost:3100   | admin / admin  |
+| Prometheus      | http://localhost:9090   | —              |
+| RabbitMQ Mgmt   | http://localhost:15672  | guest / guest  |
+| Tempo HTTP API  | http://localhost:3200   | —              |
+
+### Buscar trace por ID (via Tempo API)
+
+```bash
+curl "http://localhost:3200/api/traces/<traceId>"
+```
+
+### Ver variáveis de ambiente OTel configuradas
+
+```bash
+docker compose exec order-service env | grep OTEL
+```
+
+### Logs de um serviço com traceId visível
+
+```bash
+# Exibe logs JSON com traceId/spanId injetados pelo nestjs-pino
+docker compose logs --tail=50 payment-service | grep traceId
+```
+
+> Para mais detalhes sobre o stack de observabilidade, consulte o [Guia de Uso de Observabilidade](./observabilidade-uso.md).
+
+## 🔟 Próximos Passos
 
 - ✅ ~~Adicionar banco de dados PostgreSQL~~ (Implementado!)
 - ✅ ~~Implementar autenticação JWT~~ (Implementado!)
 - ✅ ~~Adicionar Swagger UI~~ (Implementado!)
 - ✅ ~~Configurar RabbitMQ~~ (Implementado!)
-- ⏳ Implementar comunicação por eventos (RabbitMQ)
+- ✅ ~~Adicionar logging centralizado~~ (Implementado com nestjs-pino + Loki!)
+- ✅ ~~Implementar distributed tracing~~ (Implementado com OTel + Tempo!)
+- ⏳ Implementar Outbox Pattern (garantia transacional de eventos)
 - ⏳ Adicionar testes automatizados (unit + E2E)
 - ⏳ Implementar circuit breaker
-- ⏳ Adicionar logging centralizado
 - ⏳ Implementar rate limiting
 
 ## 🔟 Executar com Docker
