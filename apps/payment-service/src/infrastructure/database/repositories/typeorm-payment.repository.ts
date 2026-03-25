@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IPaymentRepository } from '../../../domain/repositories/payment.repository.interface';
+import { IPaymentRepository, OutboxEntry } from '../../../domain/repositories/payment.repository.interface';
 import { Payment } from '../../../domain/entities/payment.entity';
 import { PaymentEntity } from '../entities/payment.entity';
+import { OutboxEntity } from '../entities/outbox.entity';
 
 @Injectable()
 export class TypeOrmPaymentRepository implements IPaymentRepository {
@@ -16,6 +17,22 @@ export class TypeOrmPaymentRepository implements IPaymentRepository {
         const paymentEntity = this.domainToEntity(payment);
         const savedEntity = await this.paymentRepository.save(paymentEntity);
         return this.entityToDomain(savedEntity);
+    }
+
+    async saveWithOutbox(payment: Payment, outbox: OutboxEntry): Promise<Payment> {
+        const paymentEntity = this.domainToEntity(payment);
+        return this.paymentRepository.manager.transaction(async (em) => {
+            const saved = await em.save(PaymentEntity, paymentEntity);
+            await em.save(OutboxEntity, {
+                eventType: outbox.eventType,
+                payload: outbox.payload,
+                status: 'PENDING',
+                attempts: 0,
+                lastError: null,
+                publishedAt: null,
+            });
+            return this.entityToDomain(saved);
+        });
     }
 
     async findById(id: string): Promise<Payment | null> {

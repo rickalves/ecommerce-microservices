@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { PaymentEntity } from './entities/payment.entity';
+import { OutboxEntity } from './entities/outbox.entity';
 
 export const dataSourceOptions: DataSourceOptions = {
     type: 'postgres',
@@ -9,7 +10,7 @@ export const dataSourceOptions: DataSourceOptions = {
     username: process.env.DB_USERNAME || 'payment_service',
     password: process.env.DB_PASSWORD || 'payment_service_pass',
     database: process.env.DB_DATABASE || 'payments_db',
-    entities: [PaymentEntity],
+    entities: [PaymentEntity, OutboxEntity],
     migrations: [__dirname + '/migrations/*{.ts,.js}'],
     synchronize: true,
     logging: process.env.NODE_ENV === 'development',

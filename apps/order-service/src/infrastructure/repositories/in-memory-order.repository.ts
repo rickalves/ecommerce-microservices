@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { Order } from '../../domain/entities/order.entity';
-import { IOrderRepository } from '../../domain/repositories/order.repository.interface';
+import { IOrderRepository, OutboxEntry } from '../../domain/repositories/order.repository.interface';
 
 @Injectable()
 export class InMemoryOrderRepository implements IOrderRepository {
@@ -10,6 +10,11 @@ export class InMemoryOrderRepository implements IOrderRepository {
     async save(order: Order): Promise<Order> {
         this.orders.set(order.id, order);
         return order;
+    }
+
+    // In-memory implementation: persiste o pedido normalmente (sem transação real)
+    async saveWithOutbox(order: Order, _outbox: OutboxEntry): Promise<Order> {
+        return this.save(order);
     }
 
     async findById(id: string): Promise<Order | null> {

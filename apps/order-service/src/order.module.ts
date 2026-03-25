@@ -12,7 +12,9 @@ import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-s
 import { TypeOrmOrderRepository } from './infrastructure/database/repositories/typeorm-order.repository';
 import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
 import { OrderEntity } from './infrastructure/database/entities/order.entity';
+import { OutboxEntity } from './infrastructure/database/entities/outbox.entity';
 import { RabbitMQSetupService } from './infrastructure/messaging/rabbitmq-setup.service';
+import { OutboxProcessor } from './infrastructure/messaging/outbox.processor';
 import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 // Observability
@@ -37,7 +39,7 @@ import {
         MetricsModule.forRoot({ serviceName: 'order-service' }),
         TracingModule,
 
-        TypeOrmModule.forFeature([OrderEntity]),
+        TypeOrmModule.forFeature([OrderEntity, OutboxEntity]),
         ClientsModule.register([
             {
                 name: 'EVENT_BUS',
@@ -62,6 +64,7 @@ import {
         GetOrderUseCase,
         UpdateOrderStatusUseCase,
         RabbitMQSetupService,
+        OutboxProcessor,
         {
             provide: ORDER_REPOSITORY,
             useClass: TypeOrmOrderRepository,

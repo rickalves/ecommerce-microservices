@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { IOrderRepository, OutboxEntry } from '../../../domain/repositories/order.repository.interface';
 import { Order } from '../../../domain/entities/order.entity';
 import { OrderEntity } from '../entities/order.entity';
+import { OutboxEntity } from '../entities/outbox.entity';
 
 @Injectable()
 export class TypeOrmOrderRepository implements IOrderRepository {
@@ -16,6 +17,22 @@ export class TypeOrmOrderRepository implements IOrderRepository {
         const orderEntity = this.domainToEntity(order);
         const savedEntity = await this.orderRepository.save(orderEntity);
         return this.entityToDomain(savedEntity);
+    }
+
+    async saveWithOutbox(order: Order, outbox: OutboxEntry): Promise<Order> {
+        const orderEntity = this.domainToEntity(order);
+        return this.orderRepository.manager.transaction(async (em) => {
+            const saved = await em.save(OrderEntity, orderEntity);
+            await em.save(OutboxEntity, {
+                eventType: outbox.eventType,
+                payload: outbox.payload,
+                status: 'PENDING',
+                attempts: 0,
+                lastError: null,
+                publishedAt: null,
+            });
+            return this.entityToDomain(saved);
+        });
     }
 
     async findById(id: string): Promise<Order | null> {

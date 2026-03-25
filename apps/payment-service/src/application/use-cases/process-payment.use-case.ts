@@ -5,7 +5,6 @@ import {
     PaymentCompletedEvent,
     PaymentFailedEvent,
 } from '@ecommerce/shared';
-import { ClientProxy } from '@nestjs/microservices';
 import { MetricsService } from '@ecommerce/observability';
 
 import { Payment } from '../../domain/entities/payment.entity';
@@ -17,7 +16,6 @@ export class ProcessPaymentUseCase {
     constructor(
         @Inject(PAYMENT_REPOSITORY)
         private readonly paymentRepository: IPaymentRepository,
-        @Inject('EVENT_BUS') private readonly eventBus: ClientProxy,
         private readonly metrics: MetricsService
     ) {}
 
@@ -30,7 +28,7 @@ export class ProcessPaymentUseCase {
             throw new Error('Payment already exists for this order');
         }
 
-        // Cria o pagamento
+        // Cria o pagamento e persiste + registra evento no outbox atomicamente
         const payment = Payment.create(
             createPaymentDto.orderId,
             createPaymentDto.userId,
@@ -38,21 +36,18 @@ export class ProcessPaymentUseCase {
             createPaymentDto.method
         );
 
-        const saved = await this.paymentRepository.save(payment);
-
-        // Publica evento de pagamento iniciado
-        const initiatedEvent: PaymentInitiatedEvent = {
-            correlationId: saved.id,
-            payment: saved,
-        };
-        this.eventBus.emit('payment.initiated', initiatedEvent);
+        const initiatedEvent: PaymentInitiatedEvent = { correlationId: payment.id, payment };
+        const saved = await this.paymentRepository.saveWithOutbox(payment, {
+            eventType: 'payment.initiated',
+            payload: initiatedEvent as unknown as Record<string, unknown>,
+        });
         this.metrics.eventPublishedTotal.inc({ event_type: 'payment.initiated' });
 
         // Simula processamento do pagamento (em produção, integraria com gateway de pagamento)
         try {
             const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            // Atualiza para processando
+            // Atualiza para PROCESSING — sem evento, não precisa de outbox
             saved.process(transactionId);
             await this.paymentRepository.save(saved);
 
@@ -61,43 +56,47 @@ export class ProcessPaymentUseCase {
 
             if (isSuccess) {
                 saved.complete();
-                await this.paymentRepository.save(saved);
-
-                // Publica evento de pagamento completado
                 const completedEvent: PaymentCompletedEvent = {
                     correlationId: saved.id,
                     orderId: saved.orderId,
                     payment: saved,
                 };
-                this.eventBus.emit('payment.completed', completedEvent);
+                // Persiste COMPLETED + enfileira evento no outbox atomicamente
+                await this.paymentRepository.saveWithOutbox(saved, {
+                    eventType: 'payment.completed',
+                    payload: completedEvent as unknown as Record<string, unknown>,
+                });
                 this.metrics.eventPublishedTotal.inc({ event_type: 'payment.completed' });
                 this.metrics.paymentsProcessedTotal.inc({ status: 'completed' });
             } else {
                 saved.fail();
-                await this.paymentRepository.save(saved);
-
-                // Publica evento de pagamento falhou
                 const failedEvent: PaymentFailedEvent = {
                     correlationId: saved.id,
                     orderId: saved.orderId,
                     payment: saved,
                     reason: 'Payment gateway declined the transaction',
                 };
-                this.eventBus.emit('payment.failed', failedEvent);
+                // Persiste FAILED + enfileira evento no outbox atomicamente
+                await this.paymentRepository.saveWithOutbox(saved, {
+                    eventType: 'payment.failed',
+                    payload: failedEvent as unknown as Record<string, unknown>,
+                });
                 this.metrics.eventPublishedTotal.inc({ event_type: 'payment.failed' });
                 this.metrics.paymentsProcessedTotal.inc({ status: 'failed' });
             }
         } catch (error) {
             saved.fail();
-            await this.paymentRepository.save(saved);
-
             const failedEvent: PaymentFailedEvent = {
                 correlationId: saved.id,
                 orderId: saved.orderId,
                 payment: saved,
                 reason: (error as Error).message,
             };
-            this.eventBus.emit('payment.failed', failedEvent);
+            // Persiste FAILED + enfileira evento no outbox atomicamente
+            await this.paymentRepository.saveWithOutbox(saved, {
+                eventType: 'payment.failed',
+                payload: failedEvent as unknown as Record<string, unknown>,
+            });
             this.metrics.eventPublishedTotal.inc({ event_type: 'payment.failed' });
             this.metrics.paymentsProcessedTotal.inc({ status: 'failed' });
         }

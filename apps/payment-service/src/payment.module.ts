@@ -12,7 +12,9 @@ import { RefundPaymentUseCase } from './application/use-cases/refund-payment.use
 import { TypeOrmPaymentRepository } from './infrastructure/database/repositories/typeorm-payment.repository';
 import { PAYMENT_REPOSITORY } from './domain/repositories/payment.repository.interface';
 import { PaymentEntity } from './infrastructure/database/entities/payment.entity';
+import { OutboxEntity } from './infrastructure/database/entities/outbox.entity';
 import { RabbitMQSetupService } from './infrastructure/messaging/rabbitmq-setup.service';
+import { OutboxProcessor } from './infrastructure/messaging/outbox.processor';
 import { QUEUES, EXCHANGES } from '@ecommerce/shared';
 
 // Observability
@@ -37,7 +39,7 @@ import {
         MetricsModule.forRoot({ serviceName: 'payment-service' }),
         TracingModule,
 
-        TypeOrmModule.forFeature([PaymentEntity]),
+        TypeOrmModule.forFeature([PaymentEntity, OutboxEntity]),
         ClientsModule.register([
             {
                 name: 'EVENT_BUS',
@@ -62,6 +64,7 @@ import {
         GetPaymentUseCase,
         RefundPaymentUseCase,
         RabbitMQSetupService,
+        OutboxProcessor,
         {
             provide: PAYMENT_REPOSITORY,
             useClass: TypeOrmPaymentRepository,

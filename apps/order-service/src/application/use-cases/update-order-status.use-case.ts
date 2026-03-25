@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { OrderCancelledEvent } from '@ecommerce/shared';
+import { OrderCancelledEvent, OrderStatus } from '@ecommerce/shared';
 
 import { Order } from '../../domain/entities/order.entity';
 import { ORDER_REPOSITORY } from '../../domain/repositories/order.repository.interface';
@@ -10,8 +9,7 @@ import type { IOrderRepository } from '../../domain/repositories/order.repositor
 export class UpdateOrderStatusUseCase {
     constructor(
         @Inject(ORDER_REPOSITORY)
-        private readonly orderRepository: IOrderRepository,
-        @Inject('EVENT_BUS') private readonly eventBus: ClientProxy
+        private readonly orderRepository: IOrderRepository
     ) {}
 
     async confirmOrder(orderId: string): Promise<Order> {
@@ -19,6 +17,8 @@ export class UpdateOrderStatusUseCase {
         if (!order) {
             throw new Error('Order not found');
         }
+        // Idempotente: se já confirmado (reentrega do outbox), apenas retorna
+        if (order.status === OrderStatus.CONFIRMED) return order;
 
         order.confirm();
         return this.orderRepository.save(order);
@@ -49,22 +49,21 @@ export class UpdateOrderStatusUseCase {
         if (!order) {
             throw new Error('Order not found');
         }
+        // Idempotente: se já cancelado (reentrega do outbox), apenas retorna
+        if (order.status === OrderStatus.CANCELLED) return order;
 
         order.cancel();
-        const updated = await this.orderRepository.save(order);
 
-        // Publica evento de pedido cancelado para disparar compensações (ex: reembolso)
-        try {
-            const event: OrderCancelledEvent = {
-                correlationId: updated.id,
-                orderId: updated.id,
-                reason: 'Order cancelled by user or due to payment failure',
-            };
-            this.eventBus.emit('order.cancelled', event);
-        } catch (_) {
-            // swallow to avoid failing cancellation on event publish issues
-        }
+        const event: OrderCancelledEvent = {
+            correlationId: order.id,
+            orderId: order.id,
+            reason: 'Order cancelled by user or due to payment failure',
+        };
 
-        return updated;
+        // Persiste CANCELLED + enfileira evento no outbox atomicamente
+        return this.orderRepository.saveWithOutbox(order, {
+            eventType: 'order.cancelled',
+            payload: event as unknown as Record<string, unknown>,
+        });
     }
 }
