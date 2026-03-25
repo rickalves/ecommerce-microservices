@@ -87,6 +87,10 @@ services:
             - DB_USERNAME=user_service
             - DB_PASSWORD=user_service_pass
             - DB_DATABASE=users_db
+            - SERVICE_NAME=user-service
+            - OTEL_SERVICE_NAME=user-service
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+            - OTEL_PROPAGATORS=tracecontext,baggage
 
     order-service:
         build:
@@ -108,6 +112,11 @@ services:
             - DB_PASSWORD=order_service_pass
             - DB_DATABASE=orders_db
             - RMQ_URL=amqp://rabbitmq:5672
+            - SERVICE_NAME=order-service
+            - OTEL_SERVICE_NAME=order-service
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+            - OTEL_PROPAGATORS=tracecontext,baggage
+            - RABBITMQ_MGMT_URL=http://rabbitmq:15672
 
     payment-service:
         build:
@@ -129,6 +138,11 @@ services:
             - DB_PASSWORD=payment_service_pass
             - DB_DATABASE=payments_db
             - RMQ_URL=amqp://rabbitmq:5672
+            - SERVICE_NAME=payment-service
+            - OTEL_SERVICE_NAME=payment-service
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+            - OTEL_PROPAGATORS=tracecontext,baggage
+            - RABBITMQ_MGMT_URL=http://rabbitmq:15672
 
     # === Camada 3: Gateway (ponto de entrada) ===
     api-gateway:
@@ -149,6 +163,10 @@ services:
             - USER_SERVICE_URL=http://user-service:3001
             - ORDER_SERVICE_URL=http://order-service:3002
             - PAYMENT_SERVICE_URL=http://payment-service:3003
+            - SERVICE_NAME=api-gateway
+            - OTEL_SERVICE_NAME=api-gateway
+            - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+            - OTEL_PROPAGATORS=tracecontext,baggage
 
     # === Camada 4: Observabilidade ===
     prometheus:
@@ -164,6 +182,7 @@ services:
             - '--storage.tsdb.path=/prometheus'
             - '--storage.tsdb.retention.time=15d'
             - '--web.enable-lifecycle'
+            - '--web.enable-remote-write-receiver'
         depends_on:
             - api-gateway
             - order-service
@@ -179,12 +198,50 @@ services:
             - GF_SECURITY_ADMIN_USER=admin
             - GF_SECURITY_ADMIN_PASSWORD=admin
             - GF_USERS_ALLOW_SIGN_UP=false
+            - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor metricsSummary
         volumes:
             - grafana_data:/var/lib/grafana
             - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
             - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
         depends_on:
             - prometheus
+            - loki
+            - tempo
+
+    # === Camada 5: Telemetria distribuída ===
+    otel-collector:
+        image: otel/opentelemetry-collector-contrib:latest
+        container_name: otel-collector
+        ports:
+            - '4317:4317'   # OTLP gRPC
+            - '4318:4318'   # OTLP HTTP
+            - '8888:8888'   # Métricas internas do collector
+        volumes:
+            - ./infra/otel-collector/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+        depends_on:
+            - prometheus
+            - loki
+            - tempo
+
+    tempo:
+        image: grafana/tempo:2.6.1
+        container_name: tempo
+        command: ['-config.file=/etc/tempo.yml']
+        ports:
+            - '3200:3200'   # Tempo HTTP API / UI
+        volumes:
+            - ./infra/tempo/tempo.yml:/etc/tempo.yml:ro
+            - tempo_data:/var/tempo
+
+    loki:
+        image: grafana/loki:latest
+        container_name: loki
+        ports:
+            - '3110:3100'   # Loki HTTP API (3110 evita conflito com grafana em 3100)
+        command: -config.file=/etc/loki/local-config.yaml
+        volumes:
+            - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+            - loki_data:/loki
 
 volumes:
     postgres_users_data:
@@ -193,3 +250,5 @@ volumes:
     rabbitmq_data:
     prometheus_data:
     grafana_data:
+    tempo_data:
+    loki_data:

@@ -1,33 +1,25 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { CorrelationService } from './correlation.service';
+import { trace } from '@opentelemetry/api';
 
 @Injectable()
 export class CorrelationMiddleware implements NestMiddleware {
-    constructor(private readonly correlationService: CorrelationService) {}
-
     use(req: Request, res: Response, next: NextFunction) {
-        // Extrair headers de correlação
-        const correlationId =
-            (req.headers['x-correlation-id'] as string) ||
-            this.correlationService.generateCorrelationId();
+        // O OTel HttpInstrumentation (via getNodeAutoInstrumentations) já criou o span
+        // e propagou o traceparent dos headers de entrada automaticamente.
+        // Este middleware apenas expõe o traceId OTel como X-Correlation-ID na resposta.
+        const span = trace.getActiveSpan();
+        if (span) {
+            const traceId = span.spanContext().traceId;
+            res.setHeader('X-Correlation-ID', traceId);
+            res.setHeader('X-Trace-ID', traceId);
 
-        const traceId = req.headers['traceparent'] as string;
-        const userId = (req as any).user?.id; // Se existir JWT user
-
-        // Adicionar correlationId ao response header
-        res.setHeader('X-Correlation-ID', correlationId);
-
-        // Executar a requisição dentro do contexto de correlação
-        this.correlationService.run(
-            {
-                correlationId,
-                traceId,
-                userId,
-            },
-            () => {
-                next();
+            // Propaga userId do JWT para o span ativo, se disponível
+            const userId = (req as any).user?.id;
+            if (userId) {
+                span.setAttribute('enduser.id', String(userId));
             }
-        );
+        }
+        next();
     }
 }

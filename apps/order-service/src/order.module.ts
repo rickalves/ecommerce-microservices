@@ -24,6 +24,8 @@ import {
     HealthModule,
     MetricsModule,
     MetricsInterceptor,
+    TracingModule,
+    TracingInterceptor,
 } from '@ecommerce/observability';
 
 @Module({
@@ -31,8 +33,9 @@ import {
         // Observability modules
         LoggerModule.forRoot({ serviceName: 'order-service' }),
         CorrelationModule,
-        HealthModule.forRoot({ database: true }),
+        HealthModule.forRoot({ database: true, rabbitmq: true }),
         MetricsModule.forRoot({ serviceName: 'order-service' }),
+        TracingModule,
 
         TypeOrmModule.forFeature([OrderEntity]),
         ClientsModule.register([
@@ -74,6 +77,10 @@ import {
         {
             provide: APP_INTERCEPTOR,
             useClass: MetricsInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: TracingInterceptor,
         },
     ],
 })

@@ -19,6 +19,8 @@ import {
     HealthModule,
     MetricsModule,
     MetricsInterceptor,
+    TracingModule,
+    TracingInterceptor,
 } from '@ecommerce/observability';
 
 @Module({
@@ -28,6 +30,7 @@ import {
         CorrelationModule,
         HealthModule.forRoot({ database: true }),
         MetricsModule.forRoot({ serviceName: 'user-service' }),
+        TracingModule,
 
         TypeOrmModule.forFeature([UserEntity]),
     ],
@@ -48,6 +51,10 @@ import {
         {
             provide: APP_INTERCEPTOR,
             useClass: MetricsInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: TracingInterceptor,
         },
     ],
 })

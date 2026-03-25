@@ -19,6 +19,8 @@ import {
     HealthModule,
     MetricsModule,
     MetricsInterceptor,
+    TracingModule,
+    TracingInterceptor,
 } from '@ecommerce/observability';
 
 @Module({
@@ -28,6 +30,7 @@ import {
         CorrelationModule,
         HealthModule,
         MetricsModule.forRoot({ serviceName: 'api-gateway' }),
+        TracingModule,
 
         // HTTP Client para queries síncronas
         HttpModule.register({
@@ -91,6 +94,10 @@ import {
         {
             provide: APP_INTERCEPTOR,
             useClass: MetricsInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: TracingInterceptor,
         },
     ],
 })

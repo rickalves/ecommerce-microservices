@@ -1,6 +1,7 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
+import { trace } from '@opentelemetry/api';
 import { MetricsService } from './metrics.service';
 
 @Injectable()
@@ -19,6 +20,14 @@ export class MetricsInterceptor implements NestInterceptor {
         return this.handleRpc(context, next, startTime);
     }
 
+    private getExemplar(): Record<string, string> | undefined {
+        const span = trace.getActiveSpan();
+        if (!span) return undefined;
+        const ctx = span.spanContext();
+        if (ctx.traceId === '00000000000000000000000000000000') return undefined;
+        return { traceId: ctx.traceId };
+    }
+
     private handleHttp(
         context: ExecutionContext,
         next: CallHandler,
@@ -30,15 +39,16 @@ export class MetricsInterceptor implements NestInterceptor {
 
         const record = (statusCode: string) => {
             const duration = (Date.now() - startTime) / 1000;
-            this.metrics.httpRequestDuration.observe(
-                { method, route: routePath, status_code: statusCode },
-                duration
-            );
-            this.metrics.httpRequestsTotal.inc({
-                method,
-                route: routePath,
-                status_code: statusCode,
-            });
+            const exemplar = this.getExemplar();
+            const labels = { method, route: routePath, status_code: statusCode };
+
+            if (exemplar) {
+                this.metrics.httpRequestDuration.observe({ labels, value: duration, exemplarLabels: exemplar });
+                this.metrics.httpRequestsTotal.inc({ labels, exemplarLabels: exemplar });
+            } else {
+                this.metrics.httpRequestDuration.observe(labels, duration);
+                this.metrics.httpRequestsTotal.inc(labels);
+            }
         };
 
         return next.handle().pipe(
@@ -76,7 +86,16 @@ export class MetricsInterceptor implements NestInterceptor {
                     event_type: eventType,
                     status: 'success',
                 });
-                this.metrics.eventProcessingDuration.observe({ event_type: eventType }, duration);
+                const exemplar = this.getExemplar();
+                if (exemplar) {
+                    this.metrics.eventProcessingDuration.observe({
+                        labels: { event_type: eventType },
+                        value: duration,
+                        exemplarLabels: exemplar,
+                    });
+                } else {
+                    this.metrics.eventProcessingDuration.observe({ event_type: eventType }, duration);
+                }
             }),
             catchError((error) => {
                 const duration = (Date.now() - startTime) / 1000;

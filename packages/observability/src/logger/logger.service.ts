@@ -1,5 +1,6 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import pino, { Logger as PinoLogger } from 'pino';
+import { trace } from '@opentelemetry/api';
 import { LogContext, LogLevel } from '../types';
 
 @Injectable()
@@ -17,6 +18,18 @@ export class LoggerService implements NestLoggerService {
             formatters: {
                 level: (label) => {
                     return { level: label };
+                },
+                // Injeta traceId e spanId do span OTel ativo em todo log automaticamente
+                log(obj: Record<string, unknown>) {
+                    const span = trace.getActiveSpan();
+                    if (!span) return obj;
+                    const ctx = span.spanContext();
+                    if (ctx.traceId === '00000000000000000000000000000000') return obj;
+                    return {
+                        ...obj,
+                        traceId: ctx.traceId,
+                        spanId: ctx.spanId,
+                    };
                 },
             },
             redact: {

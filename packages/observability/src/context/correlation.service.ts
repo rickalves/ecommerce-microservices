@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AsyncLocalStorage } from 'async_hooks';
+import { trace, SpanContext } from '@opentelemetry/api';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface CorrelationContext {
@@ -13,90 +13,52 @@ export interface CorrelationContext {
 
 @Injectable()
 export class CorrelationService {
-    private static asyncLocalStorage = new AsyncLocalStorage<CorrelationContext>();
-
     /**
-     * Executa uma função dentro de um contexto de correlação
-     */
-    run<T>(context: Partial<CorrelationContext>, fn: () => T): T {
-        const correlationContext: CorrelationContext = {
-            correlationId: context.correlationId || uuidv4(),
-            ...context,
-        };
-
-        return CorrelationService.asyncLocalStorage.run(correlationContext, fn);
-    }
-
-    /**
-     * Obtém o contexto de correlação atual
-     */
-    getContext(): CorrelationContext | undefined {
-        return CorrelationService.asyncLocalStorage.getStore();
-    }
-
-    /**
-     * Obtém o correlationId atual
+     * Obtém o traceId do span OTel ativo — equivale ao correlationId.
+     * O OTel SDK usa AsyncLocalStorage internamente, não precisamos gerenciá-lo.
      */
     getCorrelationId(): string | undefined {
-        return this.getContext()?.correlationId;
+        return this.getActiveSpanContext()?.traceId;
     }
 
-    /**
-     * Obtém o traceId atual
-     */
     getTraceId(): string | undefined {
-        return this.getContext()?.traceId;
+        return this.getActiveSpanContext()?.traceId;
     }
 
-    /**
-     * Obtém o spanId atual
-     */
     getSpanId(): string | undefined {
-        return this.getContext()?.spanId;
+        return this.getActiveSpanContext()?.spanId;
     }
 
-    /**
-     * Obtém o userId atual
-     */
-    getUserId(): string | undefined {
-        return this.getContext()?.userId;
+    getContext(): CorrelationContext | undefined {
+        const spanCtx = this.getActiveSpanContext();
+        if (!spanCtx) return undefined;
+        return {
+            correlationId: spanCtx.traceId,
+            traceId: spanCtx.traceId,
+            spanId: spanCtx.spanId,
+        };
     }
 
-    /**
-     * Define uma propriedade no contexto atual
-     */
-    set(key: string, value: any): void {
-        const context = this.getContext();
-        if (context) {
-            context[key] = value;
-        }
-    }
-
-    /**
-     * Obtém uma propriedade do contexto atual
-     */
-    get(key: string): any {
-        return this.getContext()?.[key];
-    }
-
-    /**
-     * Gera um novo correlationId
-     */
+    /** Mantido para compatibilidade com CorrelationMiddleware */
     generateCorrelationId(): string {
         return uuidv4();
     }
 
-    /**
-     * Cria um contexto filho com causationId definido
-     */
-    createChildContext(additionalContext?: Partial<CorrelationContext>): CorrelationContext {
-        const currentContext = this.getContext();
-        const correlationId = currentContext?.correlationId || uuidv4();
+    private getActiveSpanContext(): SpanContext | undefined {
+        const span = trace.getActiveSpan();
+        if (!span) return undefined;
+        const ctx = span.spanContext();
+        // traceId '000...0' indica NonRecordingSpan (sem span ativo real)
+        return ctx.traceId !== '00000000000000000000000000000000' ? ctx : undefined;
+    }
 
-        return {
-            correlationId,
-            causationId: currentContext?.correlationId,
-            ...additionalContext,
-        };
+    /** @deprecated AsyncLocalStorage foi substituído pelo OTel SDK */
+    get(key: string): any {
+        return this.getContext()?.[key];
+    }
+
+    /** @deprecated AsyncLocalStorage foi substituído pelo OTel SDK */
+    set(_key: string, _value: any): void {
+        // no-op: atributos de span devem ser definidos via trace.getActiveSpan().setAttribute()
     }
 }
