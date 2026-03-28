@@ -23,10 +23,7 @@ export class HealthModule {
             module: HealthModule,
             imports: [TerminusModule, HttpModule],
             controllers: [HealthController],
-            providers: [
-                { provide: HEALTH_OPTIONS, useValue: options },
-                RabbitMQHealthIndicator,
-            ],
+            providers: [{ provide: HEALTH_OPTIONS, useValue: options }, RabbitMQHealthIndicator],
             exports: [RabbitMQHealthIndicator],
         };
     }

@@ -213,9 +213,9 @@ services:
         image: otel/opentelemetry-collector-contrib:latest
         container_name: otel-collector
         ports:
-            - '4317:4317'   # OTLP gRPC
-            - '4318:4318'   # OTLP HTTP
-            - '8888:8888'   # Métricas internas do collector
+            - '4317:4317' # OTLP gRPC
+            - '4318:4318' # OTLP HTTP
+            - '8888:8888' # Métricas internas do collector
         volumes:
             - ./infra/otel-collector/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
         depends_on:
@@ -228,7 +228,7 @@ services:
         container_name: tempo
         command: ['-config.file=/etc/tempo.yml']
         ports:
-            - '3200:3200'   # Tempo HTTP API / UI
+            - '3200:3200' # Tempo HTTP API / UI
         volumes:
             - ./infra/tempo/tempo.yml:/etc/tempo.yml:ro
             - tempo_data:/var/tempo
@@ -237,7 +237,7 @@ services:
         image: grafana/loki:latest
         container_name: loki
         ports:
-            - '3110:3100'   # Loki HTTP API (3110 evita conflito com grafana em 3100)
+            - '3110:3100' # Loki HTTP API (3110 evita conflito com grafana em 3100)
         command: -config.file=/etc/loki/local-config.yaml
         volumes:
             - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro

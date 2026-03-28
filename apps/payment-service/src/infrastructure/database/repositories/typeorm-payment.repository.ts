@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IPaymentRepository, OutboxEntry } from '../../../domain/repositories/payment.repository.interface';
+import {
+    IPaymentRepository,
+    OutboxEntry,
+} from '../../../domain/repositories/payment.repository.interface';
 import { Payment } from '../../../domain/entities/payment.entity';
 import { PaymentEntity } from '../entities/payment.entity';
 import { OutboxEntity } from '../entities/outbox.entity';

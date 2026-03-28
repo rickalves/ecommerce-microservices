@@ -66,6 +66,7 @@ sdk.start();
 ```
 
 Configuração do SDK:
+
 - **Exporter:** OTLP gRPC → `otel-collector:4317`
 - **Resource:** `service.name`, `service.version` (via `APP_VERSION`)
 - **Auto-instrumentações:** HTTP, Express, TypeORM, NestJS, amqplib (RabbitMQ)
@@ -79,6 +80,7 @@ Interceptor NestJS que cria um span filho (`ControllerName.methodName`, `SpanKin
 ### `LoggerModule` / `LoggerService`
 
 Wrapper sobre **nestjs-pino** configurado com:
+
 - `autoLogging: true` — loga request/response automaticamente
 - Formatter que injeta `traceId` e `spanId` do OTel active span em **cada linha de log**
 - Redação automática de `authorization`, `cookie`, `*.password`, `*.token`
@@ -99,6 +101,7 @@ Interceptor RPC que extrai `traceparent` do payload de eventos RabbitMQ e recons
 ### `MetricsModule` / `MetricsService`
 
 Expõe métricas via `/metrics` em formato **OpenMetrics** (necessário para suporte a Exemplars). Registra:
+
 - `http_request_duration_seconds` (Histogram, com Exemplars)
 - `http_requests_total` (Counter, com Exemplars)
 - `event_published_total`, `event_consumed_total`, `event_processing_duration_seconds`
@@ -116,6 +119,7 @@ Interceptor automático que observa duração e contagem de requisições HTTP e
 ### `HealthModule` / `RabbitMQHealthIndicator`
 
 Controller `/health` (via `@nestjs/terminus`) que verifica:
+
 - Banco de dados PostgreSQL (TypeORM) — quando `database: true`
 - RabbitMQ via Management API — verifica profundidade das filas (fail se > `maxQueueDepth`, padrão 1000)
 
@@ -139,13 +143,13 @@ Cada observação de Histogram e Counter HTTP inclui um Exemplar com `traceId`. 
 
 ## Infraestrutura (`infra/`)
 
-| Arquivo                                  | Descrição                                                           |
-| ---------------------------------------- | ------------------------------------------------------------------- |
-| `infra/otel-collector/otel-collector.yml`| Configuração do Collector: pipelines traces/metrics/logs            |
-| `infra/tempo/tempo.yml`                  | Tempo 2.6.1 — storage em `/var/tempo`, S3-like local                |
-| `infra/loki/loki-config.yml`             | Loki — ingesta via OTLP nativo (Loki 3.x)                          |
-| `infra/prometheus/prometheus.yml`        | Prometheus — scrape de `/metrics` em todos os serviços             |
-| `infra/grafana/provisioning/`            | Datasources Tempo, Loki, Prometheus pré-configurados                |
+| Arquivo                                   | Descrição                                                |
+| ----------------------------------------- | -------------------------------------------------------- |
+| `infra/otel-collector/otel-collector.yml` | Configuração do Collector: pipelines traces/metrics/logs |
+| `infra/tempo/tempo.yml`                   | Tempo 2.6.1 — storage em `/var/tempo`, S3-like local     |
+| `infra/loki/loki-config.yml`              | Loki — ingesta via OTLP nativo (Loki 3.x)                |
+| `infra/prometheus/prometheus.yml`         | Prometheus — scrape de `/metrics` em todos os serviços   |
+| `infra/grafana/provisioning/`             | Datasources Tempo, Loki, Prometheus pré-configurados     |
 
 ### Nota sobre versões fixadas
 

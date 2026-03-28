@@ -13,8 +13,7 @@ export class TracingInterceptor implements NestInterceptor {
 
         return new Observable((subscriber) => {
             tracer.startActiveSpan(spanName, { kind: SpanKind.INTERNAL }, (span) => {
-                next
-                    .handle()
+                next.handle()
                     .pipe(
                         tap(() => {
                             span.setStatus({ code: SpanStatusCode.OK });

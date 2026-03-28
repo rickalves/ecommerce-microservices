@@ -31,24 +31,24 @@ Adotar o **Outbox Pattern** (padrão de caixa de saída transacional) em `order-
 
 1. O use case chama `saveWithOutbox(entity, outboxEntry)` no repositório.
 2. O repositório executa uma única transação de banco de dados:
-   - Persiste a entidade de domínio (`orders` / `payments`).
-   - Insere uma linha na tabela `outbox` com status `PENDING`.
+    - Persiste a entidade de domínio (`orders` / `payments`).
+    - Insere uma linha na tabela `outbox` com status `PENDING`.
 3. Um `OutboxProcessor` independente faz polling a cada 5 s na tabela `outbox`.
 4. Para cada registro `PENDING`, o processor publica o evento via `ClientProxy.emit()` e marca o registro como `PUBLISHED`.
 5. Em caso de falha na publicação, o `attempts` é incrementado. Após `MAX_ATTEMPTS = 5` falhas, o status passa a `FAILED` e o erro é registrado em log de nível ERROR.
 
 ### Estrutura da tabela `outbox`
 
-| Coluna         | Tipo        | Descrição                                              |
-| -------------- | ----------- | ------------------------------------------------------ |
-| `id`           | uuid PK     | Identificador único do registro                        |
-| `event_type`   | varchar     | Nome do evento (ex: `payment.completed`)               |
-| `payload`      | jsonb       | Payload completo do evento                             |
-| `status`       | varchar     | `PENDING` → `PUBLISHED` \| `FAILED`                   |
-| `attempts`     | int         | Número de tentativas de publicação                     |
-| `last_error`   | text        | Mensagem do último erro (nullable)                     |
-| `created_at`   | timestamp   | Data de inserção                                       |
-| `published_at` | timestamp   | Data de publicação bem-sucedida (nullable)             |
+| Coluna         | Tipo      | Descrição                                  |
+| -------------- | --------- | ------------------------------------------ |
+| `id`           | uuid PK   | Identificador único do registro            |
+| `event_type`   | varchar   | Nome do evento (ex: `payment.completed`)   |
+| `payload`      | jsonb     | Payload completo do evento                 |
+| `status`       | varchar   | `PENDING` → `PUBLISHED` \| `FAILED`        |
+| `attempts`     | int       | Número de tentativas de publicação         |
+| `last_error`   | text      | Mensagem do último erro (nullable)         |
+| `created_at`   | timestamp | Data de inserção                           |
+| `published_at` | timestamp | Data de publicação bem-sucedida (nullable) |
 
 ---
 
@@ -92,12 +92,12 @@ Atomic write no banco + background processor. Implementação simples, sem novas
 
 ## Arquivos modificados
 
-| Arquivo | Alteração |
-| ------- | --------- |
-| `apps/*/src/infrastructure/database/entities/outbox.entity.ts` | Nova entidade TypeORM |
-| `apps/*/src/infrastructure/messaging/outbox.processor.ts` | Novo processor de polling |
-| `apps/*/src/domain/repositories/*.repository.interface.ts` | Interface `saveWithOutbox` |
-| `apps/*/src/infrastructure/database/repositories/typeorm-*.repository.ts` | Implementação transacional |
-| `apps/*/src/application/use-cases/*.use-case.ts` | Refatoração — remove `ClientProxy` |
-| `apps/*/src/*.module.ts` | Registra `OutboxEntity` e `OutboxProcessor` |
-| `apps/*/src/infrastructure/database/data-source.ts` | Adiciona `OutboxEntity` |
+| Arquivo                                                                   | Alteração                                   |
+| ------------------------------------------------------------------------- | ------------------------------------------- |
+| `apps/*/src/infrastructure/database/entities/outbox.entity.ts`            | Nova entidade TypeORM                       |
+| `apps/*/src/infrastructure/messaging/outbox.processor.ts`                 | Novo processor de polling                   |
+| `apps/*/src/domain/repositories/*.repository.interface.ts`                | Interface `saveWithOutbox`                  |
+| `apps/*/src/infrastructure/database/repositories/typeorm-*.repository.ts` | Implementação transacional                  |
+| `apps/*/src/application/use-cases/*.use-case.ts`                          | Refatoração — remove `ClientProxy`          |
+| `apps/*/src/*.module.ts`                                                  | Registra `OutboxEntity` e `OutboxProcessor` |
+| `apps/*/src/infrastructure/database/data-source.ts`                       | Adiciona `OutboxEntity`                     |

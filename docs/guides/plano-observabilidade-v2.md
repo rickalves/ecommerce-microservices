@@ -49,27 +49,30 @@ _(arquivo importado ANTES de qualquer outro — inicializa o SDK)_
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { Resource } from '@opentelemetry/resources';
-import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import {
+    SEMRESATTRS_SERVICE_NAME,
+    SEMRESATTRS_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { AmqplibInstrumentation } from '@opentelemetry/instrumentation-amqplib';
 
 export function createOtelSDK(serviceName: string): NodeSDK {
-  return new NodeSDK({
-    resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: serviceName,
-      [SEMRESATTRS_SERVICE_VERSION]: process.env.APP_VERSION ?? '1.0.0',
-    }),
-    traceExporter: new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://otel-collector:4317',
-    }),
-    instrumentations: [
-      getNodeAutoInstrumentations({
-        '@opentelemetry/instrumentation-fs': { enabled: false },  // muito verboso
-        '@opentelemetry/instrumentation-dns': { enabled: false },
-      }),
-      new AmqplibInstrumentation(),  // auto-instrumenta RabbitMQ publish/consume
-    ],
-  });
+    return new NodeSDK({
+        resource: new Resource({
+            [SEMRESATTRS_SERVICE_NAME]: serviceName,
+            [SEMRESATTRS_SERVICE_VERSION]: process.env.APP_VERSION ?? '1.0.0',
+        }),
+        traceExporter: new OTLPTraceExporter({
+            url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://otel-collector:4317',
+        }),
+        instrumentations: [
+            getNodeAutoInstrumentations({
+                '@opentelemetry/instrumentation-fs': { enabled: false }, // muito verboso
+                '@opentelemetry/instrumentation-dns': { enabled: false },
+            }),
+            new AmqplibInstrumentation(), // auto-instrumenta RabbitMQ publish/consume
+        ],
+    });
 }
 ```
 
@@ -88,43 +91,43 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CorrelationService {
-  // API pública mantida idêntica para evitar breaking changes nos serviços
+    // API pública mantida idêntica para evitar breaking changes nos serviços
 
-  getCorrelationId(): string | undefined {
-    // correlationId é mapeado ao traceId do span ativo
-    return this.getActiveSpanContext()?.traceId;
-  }
+    getCorrelationId(): string | undefined {
+        // correlationId é mapeado ao traceId do span ativo
+        return this.getActiveSpanContext()?.traceId;
+    }
 
-  getTraceId(): string | undefined {
-    return this.getActiveSpanContext()?.traceId;
-  }
+    getTraceId(): string | undefined {
+        return this.getActiveSpanContext()?.traceId;
+    }
 
-  getSpanId(): string | undefined {
-    return this.getActiveSpanContext()?.spanId;
-  }
+    getSpanId(): string | undefined {
+        return this.getActiveSpanContext()?.spanId;
+    }
 
-  getContext() {
-    const spanCtx = this.getActiveSpanContext();
-    if (!spanCtx) return undefined;
-    return {
-      correlationId: spanCtx.traceId,
-      traceId: spanCtx.traceId,
-      spanId: spanCtx.spanId,
-    };
-  }
+    getContext() {
+        const spanCtx = this.getActiveSpanContext();
+        if (!spanCtx) return undefined;
+        return {
+            correlationId: spanCtx.traceId,
+            traceId: spanCtx.traceId,
+            spanId: spanCtx.spanId,
+        };
+    }
 
-  // Mantido apenas para compatibilidade com CorrelationMiddleware
-  generateCorrelationId(): string {
-    return uuidv4();
-  }
+    // Mantido apenas para compatibilidade com CorrelationMiddleware
+    generateCorrelationId(): string {
+        return uuidv4();
+    }
 
-  private getActiveSpanContext(): SpanContext | undefined {
-    const span = trace.getActiveSpan();
-    if (!span) return undefined;
-    const ctx = span.spanContext();
-    // isValid garante que não é um "NonRecordingSpan"
-    return ctx.traceId !== '00000000000000000000000000000000' ? ctx : undefined;
-  }
+    private getActiveSpanContext(): SpanContext | undefined {
+        const span = trace.getActiveSpan();
+        if (!span) return undefined;
+        const ctx = span.spanContext();
+        // isValid garante que não é um "NonRecordingSpan"
+        return ctx.traceId !== '00000000000000000000000000000000' ? ctx : undefined;
+    }
 }
 ```
 
@@ -143,17 +146,17 @@ import { trace } from '@opentelemetry/api';
 
 @Injectable()
 export class CorrelationMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    // OTel HttpInstrumentation já criou o span e propagou o traceparent.
-    // Apenas expõe o traceId como X-Correlation-ID para clientes externos.
-    const span = trace.getActiveSpan();
-    if (span) {
-      const traceId = span.spanContext().traceId;
-      res.setHeader('X-Correlation-ID', traceId);
-      res.setHeader('X-Trace-ID', traceId);
+    use(req: Request, res: Response, next: NextFunction) {
+        // OTel HttpInstrumentation já criou o span e propagou o traceparent.
+        // Apenas expõe o traceId como X-Correlation-ID para clientes externos.
+        const span = trace.getActiveSpan();
+        if (span) {
+            const traceId = span.spanContext().traceId;
+            res.setHeader('X-Correlation-ID', traceId);
+            res.setHeader('X-Trace-ID', traceId);
+        }
+        next();
     }
-    next();
-  }
 }
 ```
 
@@ -172,50 +175,52 @@ import { trace, context, propagation, SpanKind } from '@opentelemetry/api';
 
 @Injectable()
 export class CorrelationInterceptor implements NestInterceptor {
-  intercept(executionContext: ExecutionContext, next: CallHandler): Observable<any> {
-    if (executionContext.getType() !== 'rpc') {
-      return next.handle();
-    }
-
-    const data = executionContext.switchToRpc().getData();
-    const tracer = trace.getTracer('correlation-interceptor');
-
-    // Tenta extrair contexto W3C do campo traceparent do payload (legado)
-    const carrier: Record<string, string> = {};
-    if (data?.traceparent) carrier['traceparent'] = data.traceparent;
-    if (data?.traceId) carrier['traceparent'] = `00-${data.traceId}-${data.spanId ?? '0000000000000000'}-01`;
-
-    const parentCtx = Object.keys(carrier).length
-      ? propagation.extract(context.active(), carrier)
-      : context.active();
-
-    const eventType = data?.eventType ?? 'rpc.message';
-
-    return new Observable((subscriber) => {
-      tracer.startActiveSpan(
-        `consume ${eventType}`,
-        { kind: SpanKind.CONSUMER },
-        parentCtx,
-        (span) => {
-          if (data?.correlationId) span.setAttribute('messaging.correlation_id', data.correlationId);
-          if (data?.eventType) span.setAttribute('messaging.operation', data.eventType);
-
-          next.handle().subscribe({
-            next: (value) => subscriber.next(value),
-            error: (err) => {
-              span.recordException(err);
-              span.end();
-              subscriber.error(err);
-            },
-            complete: () => {
-              span.end();
-              subscriber.complete();
-            },
-          });
+    intercept(executionContext: ExecutionContext, next: CallHandler): Observable<any> {
+        if (executionContext.getType() !== 'rpc') {
+            return next.handle();
         }
-      );
-    });
-  }
+
+        const data = executionContext.switchToRpc().getData();
+        const tracer = trace.getTracer('correlation-interceptor');
+
+        // Tenta extrair contexto W3C do campo traceparent do payload (legado)
+        const carrier: Record<string, string> = {};
+        if (data?.traceparent) carrier['traceparent'] = data.traceparent;
+        if (data?.traceId)
+            carrier['traceparent'] = `00-${data.traceId}-${data.spanId ?? '0000000000000000'}-01`;
+
+        const parentCtx = Object.keys(carrier).length
+            ? propagation.extract(context.active(), carrier)
+            : context.active();
+
+        const eventType = data?.eventType ?? 'rpc.message';
+
+        return new Observable((subscriber) => {
+            tracer.startActiveSpan(
+                `consume ${eventType}`,
+                { kind: SpanKind.CONSUMER },
+                parentCtx,
+                (span) => {
+                    if (data?.correlationId)
+                        span.setAttribute('messaging.correlation_id', data.correlationId);
+                    if (data?.eventType) span.setAttribute('messaging.operation', data.eventType);
+
+                    next.handle().subscribe({
+                        next: (value) => subscriber.next(value),
+                        error: (err) => {
+                            span.recordException(err);
+                            span.end();
+                            subscriber.error(err);
+                        },
+                        complete: () => {
+                            span.end();
+                            subscriber.complete();
+                        },
+                    });
+                }
+            );
+        });
+    }
 }
 ```
 
@@ -261,37 +266,38 @@ import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { LoggerService } from './logger.service';
 
 export interface LoggerModuleOptions {
-  serviceName: string;
+    serviceName: string;
 }
 
 @Module({})
 export class LoggerModule {
-  static forRoot(options: LoggerModuleOptions): DynamicModule {
-    return {
-      module: LoggerModule,
-      imports: [
-        PinoLoggerModule.forRoot({
-          pinoHttp: {
-            level: process.env.LOG_LEVEL ?? 'info',
-            autoLogging: true,
-            customProps: (req) => ({
-              service: options.serviceName,
-              correlationId: req.headers['x-correlation-id'],
-            }),
-            redact: ['req.headers.authorization', 'req.headers.cookie'],
-            transport: process.env.NODE_ENV !== 'production'
-              ? { target: 'pino-pretty', options: { colorize: true, ignore: 'pid,hostname' } }
-              : undefined,
-          },
-        }),
-      ],
-      providers: [
-        { provide: 'LOGGER_OPTIONS', useValue: options },
-        LoggerService,
-      ],
-      exports: [LoggerService, PinoLoggerModule],
-    };
-  }
+    static forRoot(options: LoggerModuleOptions): DynamicModule {
+        return {
+            module: LoggerModule,
+            imports: [
+                PinoLoggerModule.forRoot({
+                    pinoHttp: {
+                        level: process.env.LOG_LEVEL ?? 'info',
+                        autoLogging: true,
+                        customProps: (req) => ({
+                            service: options.serviceName,
+                            correlationId: req.headers['x-correlation-id'],
+                        }),
+                        redact: ['req.headers.authorization', 'req.headers.cookie'],
+                        transport:
+                            process.env.NODE_ENV !== 'production'
+                                ? {
+                                      target: 'pino-pretty',
+                                      options: { colorize: true, ignore: 'pid,hostname' },
+                                  }
+                                : undefined,
+                    },
+                }),
+            ],
+            providers: [{ provide: 'LOGGER_OPTIONS', useValue: options }, LoggerService],
+            exports: [LoggerService, PinoLoggerModule],
+        };
+    }
 }
 ```
 
@@ -301,7 +307,7 @@ export class LoggerModule {
 
 O `AmqplibInstrumentation` (adicionado na Fase 1) já injeta automaticamente o `traceparent` nos headers das mensagens AMQP no nível do protocolo. Porém como os serviços usam `@nestjs/microservices` (Transport.RMQ), que é um wrapper sobre amqplib, o resultado é:
 
-- **Publishers (emit):** span criado automaticamente com `messaging.operation = publish`.  
+- **Publishers (emit):** span criado automaticamente com `messaging.operation = publish`.
 - **Consumers (@MessagePattern/@EventPattern):** span criado automaticamente com `messaging.operation = receive`.
 
 ### 3.1 Adicionar `TracingInterceptor` para spans de processamento
@@ -318,30 +324,35 @@ import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 
 @Injectable()
 export class TracingInterceptor implements NestInterceptor {
-  intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
-    const tracer = trace.getTracer('nestjs-handler');
-    const controllerName = ctx.getClass().name;
-    const handlerName = ctx.getHandler().name;
-    const spanName = `${controllerName}.${handlerName}`;
+    intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
+        const tracer = trace.getTracer('nestjs-handler');
+        const controllerName = ctx.getClass().name;
+        const handlerName = ctx.getHandler().name;
+        const spanName = `${controllerName}.${handlerName}`;
 
-    return new Observable((subscriber) => {
-      tracer.startActiveSpan(spanName, { kind: SpanKind.INTERNAL }, (span) => {
-        next.handle().pipe(
-          tap(() => { span.setStatus({ code: SpanStatusCode.OK }); span.end(); }),
-          catchError((err) => {
-            span.recordException(err);
-            span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
-            span.end();
-            throw err;
-          }),
-        ).subscribe({
-          next: (v) => subscriber.next(v),
-          error: (e) => subscriber.error(e),
-          complete: () => subscriber.complete(),
+        return new Observable((subscriber) => {
+            tracer.startActiveSpan(spanName, { kind: SpanKind.INTERNAL }, (span) => {
+                next.handle()
+                    .pipe(
+                        tap(() => {
+                            span.setStatus({ code: SpanStatusCode.OK });
+                            span.end();
+                        }),
+                        catchError((err) => {
+                            span.recordException(err);
+                            span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+                            span.end();
+                            throw err;
+                        })
+                    )
+                    .subscribe({
+                        next: (v) => subscriber.next(v),
+                        error: (e) => subscriber.error(e),
+                        complete: () => subscriber.complete(),
+                    });
+            });
         });
-      });
-    });
-  }
+    }
 }
 ```
 
@@ -354,8 +365,8 @@ import { Module } from '@nestjs/common';
 import { TracingInterceptor } from './tracing.interceptor';
 
 @Module({
-  providers: [TracingInterceptor],
-  exports: [TracingInterceptor],
+    providers: [TracingInterceptor],
+    exports: [TracingInterceptor],
 })
 export class TracingModule {}
 ```
@@ -410,8 +421,8 @@ import { trace } from '@opentelemetry/api';
 
 const activeSpan = trace.getActiveSpan();
 const exemplarLabels = activeSpan
-  ? { traceId: activeSpan.spanContext().traceId, ...labels }
-  : labels;
+    ? { traceId: activeSpan.spanContext().traceId, ...labels }
+    : labels;
 
 this.metrics.httpRequestDuration.observe(exemplarLabels, duration);
 ```
@@ -430,35 +441,35 @@ import { MetricsService } from './metrics.service';
 
 @Injectable()
 export class RabbitMQLagCollector implements OnModuleInit {
-  private readonly mgmtUrl = process.env.RABBITMQ_MGMT_URL ?? 'http://rabbitmq:15672';
-  private readonly user = process.env.RABBITMQ_USER ?? 'guest';
-  private readonly pass = process.env.RABBITMQ_PASS ?? 'guest';
+    private readonly mgmtUrl = process.env.RABBITMQ_MGMT_URL ?? 'http://rabbitmq:15672';
+    private readonly user = process.env.RABBITMQ_USER ?? 'guest';
+    private readonly pass = process.env.RABBITMQ_PASS ?? 'guest';
 
-  constructor(
-    private readonly http: HttpService,
-    private readonly metrics: MetricsService,
-  ) {}
+    constructor(
+        private readonly http: HttpService,
+        private readonly metrics: MetricsService
+    ) {}
 
-  onModuleInit() {
-    setInterval(() => this.collect(), 30_000);
-  }
-
-  private async collect() {
-    try {
-      const { data } = await this.http.axiosRef.get(`${this.mgmtUrl}/api/queues`, {
-        auth: { username: this.user, password: this.pass },
-      });
-      for (const q of data) {
-        this.metrics.consumerLag.set({ queue: q.name }, q.messages ?? 0);
-        const dlqMatch = q.name.match(/\.dlq$/i);
-        if (dlqMatch) {
-          this.metrics.dlqDepth.set({ queue: q.name }, q.messages ?? 0);
-        }
-      }
-    } catch {
-      // não propaga erro — coleta é best-effort
+    onModuleInit() {
+        setInterval(() => this.collect(), 30_000);
     }
-  }
+
+    private async collect() {
+        try {
+            const { data } = await this.http.axiosRef.get(`${this.mgmtUrl}/api/queues`, {
+                auth: { username: this.user, password: this.pass },
+            });
+            for (const q of data) {
+                this.metrics.consumerLag.set({ queue: q.name }, q.messages ?? 0);
+                const dlqMatch = q.name.match(/\.dlq$/i);
+                if (dlqMatch) {
+                    this.metrics.dlqDepth.set({ queue: q.name }, q.messages ?? 0);
+                }
+            }
+        } catch {
+            // não propaga erro — coleta é best-effort
+        }
+    }
 }
 ```
 
@@ -472,45 +483,45 @@ Criar: `infra/otel-collector/otel-collector.yml`
 
 ```yaml
 receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
+    otlp:
+        protocols:
+            grpc:
+                endpoint: 0.0.0.0:4317
+            http:
+                endpoint: 0.0.0.0:4318
 
 processors:
-  batch:
-    timeout: 5s
-    send_batch_size: 512
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 256
+    batch:
+        timeout: 5s
+        send_batch_size: 512
+    memory_limiter:
+        check_interval: 1s
+        limit_mib: 256
 
 exporters:
-  otlp/tempo:
-    endpoint: tempo:4317
-    tls:
-      insecure: true
-  prometheusremotewrite:
-    endpoint: http://prometheus:9090/api/v1/write
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
+    otlp/tempo:
+        endpoint: tempo:4317
+        tls:
+            insecure: true
+    prometheusremotewrite:
+        endpoint: http://prometheus:9090/api/v1/write
+    loki:
+        endpoint: http://loki:3100/loki/api/v1/push
 
 service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [otlp/tempo]
-    metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [prometheusremotewrite]
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [loki]
+    pipelines:
+        traces:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [otlp/tempo]
+        metrics:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [prometheusremotewrite]
+        logs:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [loki]
 ```
 
 ### 5.2 Grafana Tempo
@@ -519,26 +530,26 @@ Criar: `infra/tempo/tempo.yml`
 
 ```yaml
 server:
-  http_listen_port: 3200
+    http_listen_port: 3200
 
 distributor:
-  receivers:
-    otlp:
-      protocols:
-        grpc:
-          endpoint: 0.0.0.0:4317
+    receivers:
+        otlp:
+            protocols:
+                grpc:
+                    endpoint: 0.0.0.0:4317
 
 storage:
-  trace:
-    backend: local
-    local:
-      path: /tmp/tempo/blocks
-    wal:
-      path: /tmp/tempo/wal
+    trace:
+        backend: local
+        local:
+            path: /tmp/tempo/blocks
+        wal:
+            path: /tmp/tempo/wal
 
 compactor:
-  compaction:
-    block_retention: 48h
+    compaction:
+        block_retention: 48h
 ```
 
 ### 5.3 Grafana Loki
@@ -549,34 +560,34 @@ Criar: `infra/loki/loki-config.yml`
 auth_enabled: false
 
 server:
-  http_listen_port: 3100
+    http_listen_port: 3100
 
 schema_config:
-  configs:
-    - from: 2024-01-01
-      store: tsdb
-      object_store: filesystem
-      schema: v13
-      index:
-        prefix: loki_index_
-        period: 24h
+    configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+              prefix: loki_index_
+              period: 24h
 
 storage_config:
-  tsdb_shipper:
-    active_index_directory: /loki/tsdb-index
-    cache_location: /loki/tsdb-cache
-  filesystem:
-    directory: /loki/chunks
+    tsdb_shipper:
+        active_index_directory: /loki/tsdb-index
+        cache_location: /loki/tsdb-cache
+    filesystem:
+        directory: /loki/chunks
 
 limits_config:
-  allow_structured_metadata: true
+    allow_structured_metadata: true
 
 query_range:
-  results_cache:
-    cache:
-      embedded_cache:
-        enabled: true
-        max_size_mb: 100
+    results_cache:
+        cache:
+            embedded_cache:
+                enabled: true
+                max_size_mb: 100
 ```
 
 ### 5.4 Atualizar `docker-compose.yml` — adicionar os 3 novos serviços
@@ -584,56 +595,56 @@ query_range:
 No arquivo `docker-compose.yml`, adicionar na **Camada 4: Observabilidade**, após o serviço `grafana`:
 
 ```yaml
-  otel-collector:
+otel-collector:
     image: otel/opentelemetry-collector-contrib:0.115.0
     container_name: otel-collector
     ports:
-      - '4317:4317'   # OTLP gRPC
-      - '4318:4318'   # OTLP HTTP
-      - '8888:8888'   # collector internal metrics
+        - '4317:4317' # OTLP gRPC
+        - '4318:4318' # OTLP HTTP
+        - '8888:8888' # collector internal metrics
     volumes:
-      - ./infra/otel-collector/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+        - ./infra/otel-collector/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
     depends_on:
-      - prometheus
-      - loki
-      - tempo
+        - prometheus
+        - loki
+        - tempo
 
-  tempo:
+tempo:
     image: grafana/tempo:2.6.0
     container_name: tempo
     command: ['-config.file=/etc/tempo.yml']
     ports:
-      - '3200:3200'   # Tempo UI / query
+        - '3200:3200' # Tempo UI / query
     volumes:
-      - ./infra/tempo/tempo.yml:/etc/tempo.yml:ro
-      - tempo_data:/tmp/tempo
+        - ./infra/tempo/tempo.yml:/etc/tempo.yml:ro
+        - tempo_data:/tmp/tempo
 
-  loki:
+loki:
     image: grafana/loki:3.2.0
     container_name: loki
     ports:
-      - '3100:3100'
+        - '3100:3100'
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
-      - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
+        - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+        - loki_data:/loki
 ```
 
 E em `volumes:`, adicionar:
 
 ```yaml
-  tempo_data:
-  loki_data:
+tempo_data:
+loki_data:
 ```
 
 Atualizar o serviço `grafana` para adicionar as novas dependências:
 
 ```yaml
-  grafana:
+grafana:
     depends_on:
-      - prometheus
-      - loki      # adicionar
-      - tempo     # adicionar
+        - prometheus
+        - loki # adicionar
+        - tempo # adicionar
 ```
 
 ### 5.5 Adicionar datasources Loki e Tempo no Grafana
@@ -643,17 +654,17 @@ Criar: `infra/grafana/provisioning/datasources/loki.yml`
 ```yaml
 apiVersion: 1
 datasources:
-  - name: Loki
-    type: loki
-    uid: loki
-    url: http://loki:3100
-    access: proxy
-    jsonData:
-      derivedFields:
-        - name: TraceID
-          matcherRegex: '"traceId":"(\w+)"'
-          url: '$${__value.raw}'
-          datasourceUid: tempo
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki:3100
+      access: proxy
+      jsonData:
+          derivedFields:
+              - name: TraceID
+                matcherRegex: '"traceId":"(\w+)"'
+                url: '$${__value.raw}'
+                datasourceUid: tempo
 ```
 
 Criar: `infra/grafana/provisioning/datasources/tempo.yml`
@@ -661,24 +672,24 @@ Criar: `infra/grafana/provisioning/datasources/tempo.yml`
 ```yaml
 apiVersion: 1
 datasources:
-  - name: Tempo
-    type: tempo
-    uid: tempo
-    url: http://tempo:3200
-    access: proxy
-    jsonData:
-      tracesToLogsV2:
-        datasourceUid: loki
-        filterByTraceID: true
-      tracesToMetrics:
-        datasourceUid: prometheus
-        queries:
-          - name: 'Request rate'
-            query: 'rate(http_requests_total{service="$__tags{service.name}"}[5m])'
-      serviceMap:
-        datasourceUid: prometheus
-      nodeGraph:
-        enabled: true
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo:3200
+      access: proxy
+      jsonData:
+          tracesToLogsV2:
+              datasourceUid: loki
+              filterByTraceID: true
+          tracesToMetrics:
+              datasourceUid: prometheus
+              queries:
+                  - name: 'Request rate'
+                    query: 'rate(http_requests_total{service="$__tags{service.name}"}[5m])'
+          serviceMap:
+              datasourceUid: prometheus
+          nodeGraph:
+              enabled: true
 ```
 
 ---
@@ -703,6 +714,7 @@ process.on('SIGINT', () => sdk.shutdown().catch(console.error));
 ```
 
 Serviços e seus `SERVICE_NAME`:
+
 - `api-gateway`
 - `order-service`
 - `payment-service`
@@ -725,10 +737,10 @@ Repetir para `order-service`, `payment-service` e `user-service`.
 ```yaml
 # Em cada serviço:
 environment:
-  - SERVICE_NAME=order-service          # nome do serviço no Tempo
-  - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-  - OTEL_SERVICE_NAME=order-service
-  - OTEL_PROPAGATORS=tracecontext,baggage
+    - SERVICE_NAME=order-service # nome do serviço no Tempo
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    - OTEL_SERVICE_NAME=order-service
+    - OTEL_PROPAGATORS=tracecontext,baggage
 ```
 
 ### 6.4 Registrar `TracingInterceptor` como `APP_INTERCEPTOR` em cada módulo
@@ -765,53 +777,59 @@ import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestj
 import { HttpService } from '@nestjs/axios';
 
 export interface RabbitMQHealthOptions {
-  maxQueueDepth?: number;       // padrão: 1000
-  queues?: string[];            // filas a monitorar (default: todas)
+    maxQueueDepth?: number; // padrão: 1000
+    queues?: string[]; // filas a monitorar (default: todas)
 }
 
 @Injectable()
 export class RabbitMQHealthIndicator extends HealthIndicator {
-  private readonly mgmtUrl = process.env.RABBITMQ_MGMT_URL ?? 'http://rabbitmq:15672';
-  private readonly user = process.env.RABBITMQ_USER ?? 'guest';
-  private readonly pass = process.env.RABBITMQ_PASS ?? 'guest';
+    private readonly mgmtUrl = process.env.RABBITMQ_MGMT_URL ?? 'http://rabbitmq:15672';
+    private readonly user = process.env.RABBITMQ_USER ?? 'guest';
+    private readonly pass = process.env.RABBITMQ_PASS ?? 'guest';
 
-  constructor(private readonly http: HttpService) {
-    super();
-  }
-
-  async checkQueues(
-    key: string,
-    options: RabbitMQHealthOptions = {}
-  ): Promise<HealthIndicatorResult> {
-    const maxDepth = options.maxQueueDepth ?? 1000;
-    try {
-      const { data } = await this.http.axiosRef.get(`${this.mgmtUrl}/api/queues`, {
-        auth: { username: this.user, password: this.pass },
-        timeout: 3000,
-      });
-
-      const filtered = options.queues
-        ? data.filter((q: any) => options.queues!.includes(q.name))
-        : data;
-
-      const overloaded = filtered.filter((q: any) => q.messages > maxDepth);
-
-      if (overloaded.length > 0) {
-        const details = Object.fromEntries(
-          overloaded.map((q: any) => [q.name, { messages: q.messages, maxDepth }])
-        );
-        throw new HealthCheckError('RabbitMQ queues overloaded', this.getStatus(key, false, details));
-      }
-
-      return this.getStatus(key, true, {
-        queues: filtered.length,
-        maxMessages: Math.max(...filtered.map((q: any) => q.messages ?? 0), 0),
-      });
-    } catch (err) {
-      if (err instanceof HealthCheckError) throw err;
-      throw new HealthCheckError('RabbitMQ unreachable', this.getStatus(key, false, { error: err.message }));
+    constructor(private readonly http: HttpService) {
+        super();
     }
-  }
+
+    async checkQueues(
+        key: string,
+        options: RabbitMQHealthOptions = {}
+    ): Promise<HealthIndicatorResult> {
+        const maxDepth = options.maxQueueDepth ?? 1000;
+        try {
+            const { data } = await this.http.axiosRef.get(`${this.mgmtUrl}/api/queues`, {
+                auth: { username: this.user, password: this.pass },
+                timeout: 3000,
+            });
+
+            const filtered = options.queues
+                ? data.filter((q: any) => options.queues!.includes(q.name))
+                : data;
+
+            const overloaded = filtered.filter((q: any) => q.messages > maxDepth);
+
+            if (overloaded.length > 0) {
+                const details = Object.fromEntries(
+                    overloaded.map((q: any) => [q.name, { messages: q.messages, maxDepth }])
+                );
+                throw new HealthCheckError(
+                    'RabbitMQ queues overloaded',
+                    this.getStatus(key, false, details)
+                );
+            }
+
+            return this.getStatus(key, true, {
+                queues: filtered.length,
+                maxMessages: Math.max(...filtered.map((q: any) => q.messages ?? 0), 0),
+            });
+        } catch (err) {
+            if (err instanceof HealthCheckError) throw err;
+            throw new HealthCheckError(
+                'RabbitMQ unreachable',
+                this.getStatus(key, false, { error: err.message })
+            );
+        }
+    }
 }
 ```
 
@@ -855,6 +873,7 @@ async ready(): Promise<HealthCheckResult> {
 ### 8.2 Criar dashboard `traces.json`
 
 Dashboard dedicado ao tracing com:
+
 - Scatter plot de latência por span (P50/P95/P99)
 - Lista de traces com erro (status = ERROR)
 - Drill-down: clicar num trace abre o Tempo UI com waterfall view
@@ -863,6 +882,7 @@ Dashboard dedicado ao tracing com:
 ### 8.3 Criar dashboard `logs.json`
 
 Dashboard dedicado a logs com:
+
 - Volume de logs por nível (info/warn/error) por serviço
 - Stream ao vivo de logs de erro
 - Campo `traceId` linkado ao Tempo (configurado via `derivedFields` no datasource Loki)
@@ -912,22 +932,26 @@ Dashboard dedicado a logs com:
 ## Checklist de validação por fase
 
 ### Fase 1–3 (OTel SDK + CorrelationService)
+
 - [ ] `pnpm build` no pacote `@ecommerce/observability` sem erros TS
 - [ ] Nenhum `AsyncLocalStorage` restante em `correlation.service.ts`
 - [ ] `CorrelationService.getTraceId()` retorna o traceId do OTel active span
 - [ ] `CorrelationInterceptor` cria span filho em handlers RPC
 
 ### Fase 2 (Pino)
+
 - [ ] Logs emitidos em formato JSON em produção
 - [ ] Campos `traceId` e `spanId` presentes nos logs quando há span ativo
 - [ ] Redact funcionando para `password`, `token`, `cpf`
 
 ### Fase 4 (Métricas)
+
 - [ ] `GET /metrics` de qualquer serviço retorna `rabbitmq_consumer_lag_messages`
 - [ ] `GET /metrics` retorna `rabbitmq_dlq_depth`
 - [ ] Histogramas retornam Exemplars com `traceId`
 
 ### Fase 5 (Infra)
+
 - [ ] `docker-compose up` sobe sem erros
 - [ ] OTel Collector acessível em `localhost:4317`
 - [ ] Tempo UI acessível em `http://localhost:3200`
@@ -935,19 +959,22 @@ Dashboard dedicado a logs com:
 - [ ] Grafana mostra 4 datasources: Prometheus, Loki, Tempo + Alertmanager
 
 ### Fase 6 (Serviços)
+
 - [ ] `import './tracing'` é a primeira linha de TODOS os `main.ts`
 - [ ] Ao fazer `POST /orders`, um trace aparece no Tempo com spans:
-  - `POST /orders` (api-gateway)
-  - `CreateOrderUseCase.execute` (order-service)
-  - `publish order.created.accepted` (order-service → RabbitMQ)
-  - `consume order.created.accepted` (payment-service)
+    - `POST /orders` (api-gateway)
+    - `CreateOrderUseCase.execute` (order-service)
+    - `publish order.created.accepted` (order-service → RabbitMQ)
+    - `consume order.created.accepted` (payment-service)
 - [ ] O `traceId` aparece no log do api-gateway E no log do order-service para o mesmo request
 
 ### Fase 7 (Health)
+
 - [ ] `GET /health/ready` no order-service retorna status das filas RabbitMQ
 - [ ] Com DLQ com > 1000 mensagens, `/health/ready` retorna `503`
 
 ### Fase 8 (Dashboards)
+
 - [ ] Dashboard "Traces" exibe waterfall por serviço
 - [ ] Clicar em um Exemplar no painel de latência abre o trace no Tempo
 - [ ] Clicar em `traceId` nos logs (Loki) abre o trace no Tempo
@@ -956,27 +983,27 @@ Dashboard dedicado a logs com:
 
 ## Dependências e versões fixadas
 
-| Pacote | Versão | Notas |
-|---|---|---|
-| `@opentelemetry/sdk-node` | `^0.57.0` | NestJS compatible |
-| `@opentelemetry/api` | `^1.9.0` | já é peerDep transitiva |
-| `@opentelemetry/auto-instrumentations-node` | `^0.56.0` | inclui http, pg, amqplib |
-| `@opentelemetry/exporter-trace-otlp-grpc` | `^0.57.0` | exporta para OTel Collector |
-| `@opentelemetry/instrumentation-amqplib` | `^0.46.0` | RabbitMQ auto-instrumentação |
-| `nestjs-pino` | `^4.3.0` | integração pino-http com NestJS |
-| `otel/opentelemetry-collector-contrib` | `0.115.0` | Docker image |
-| `grafana/tempo` | `2.6.0` | Docker image |
-| `grafana/loki` | `3.2.0` | Docker image |
+| Pacote                                      | Versão    | Notas                           |
+| ------------------------------------------- | --------- | ------------------------------- |
+| `@opentelemetry/sdk-node`                   | `^0.57.0` | NestJS compatible               |
+| `@opentelemetry/api`                        | `^1.9.0`  | já é peerDep transitiva         |
+| `@opentelemetry/auto-instrumentations-node` | `^0.56.0` | inclui http, pg, amqplib        |
+| `@opentelemetry/exporter-trace-otlp-grpc`   | `^0.57.0` | exporta para OTel Collector     |
+| `@opentelemetry/instrumentation-amqplib`    | `^0.46.0` | RabbitMQ auto-instrumentação    |
+| `nestjs-pino`                               | `^4.3.0`  | integração pino-http com NestJS |
+| `otel/opentelemetry-collector-contrib`      | `0.115.0` | Docker image                    |
+| `grafana/tempo`                             | `2.6.0`   | Docker image                    |
+| `grafana/loki`                              | `3.2.0`   | Docker image                    |
 
 ---
 
 ## Breaking changes e estratégia de migração
 
-| O que quebra | Como tratar |
-|---|---|
-| `CorrelationService.run()` removido | Usado apenas internamente no `CorrelationMiddleware` e `CorrelationInterceptor` — ambos refatorados na Fase 1 |
-| `CorrelationContext` interface removida | Não exportada para os serviços — apenas usada internamente |
-| `correlationId` nos logs muda de UUID v4 para formato OTel traceId (hex 32 chars) | Formato mais rico — nenhum impacto funcional | 
-| `getCorrelationId()` retorna `traceId` OTel | Comportamento equivalente — é o identificador único do request |
+| O que quebra                                                                      | Como tratar                                                                                                   |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `CorrelationService.run()` removido                                               | Usado apenas internamente no `CorrelationMiddleware` e `CorrelationInterceptor` — ambos refatorados na Fase 1 |
+| `CorrelationContext` interface removida                                           | Não exportada para os serviços — apenas usada internamente                                                    |
+| `correlationId` nos logs muda de UUID v4 para formato OTel traceId (hex 32 chars) | Formato mais rico — nenhum impacto funcional                                                                  |
+| `getCorrelationId()` retorna `traceId` OTel                                       | Comportamento equivalente — é o identificador único do request                                                |
 
 Nenhum breaking change nos `apps/*` — a API pública do `@ecommerce/observability` é mantida.

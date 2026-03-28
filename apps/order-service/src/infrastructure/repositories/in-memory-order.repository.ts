@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
 import { Order } from '../../domain/entities/order.entity';
-import { IOrderRepository, OutboxEntry } from '../../domain/repositories/order.repository.interface';
+import {
+    IOrderRepository,
+    OutboxEntry,
+} from '../../domain/repositories/order.repository.interface';
 
 @Injectable()
 export class InMemoryOrderRepository implements IOrderRepository {

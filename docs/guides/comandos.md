@@ -616,12 +616,12 @@ curl -H "Accept: application/openmetrics-text" http://localhost:3002/metrics
 
 ### Acessar interfaces de visualização
 
-| Interface       | URL                     | Credenciais    |
-| --------------- | ----------------------- | -------------- |
-| Grafana         | http://localhost:3100   | admin / admin  |
-| Prometheus      | http://localhost:9090   | —              |
-| RabbitMQ Mgmt   | http://localhost:15672  | guest / guest  |
-| Tempo HTTP API  | http://localhost:3200   | —              |
+| Interface      | URL                    | Credenciais   |
+| -------------- | ---------------------- | ------------- |
+| Grafana        | http://localhost:3100  | admin / admin |
+| Prometheus     | http://localhost:9090  | —             |
+| RabbitMQ Mgmt  | http://localhost:15672 | guest / guest |
+| Tempo HTTP API | http://localhost:3200  | —             |
 
 ### Buscar trace por ID (via Tempo API)
 

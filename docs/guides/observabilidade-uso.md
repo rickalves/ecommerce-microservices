@@ -6,13 +6,13 @@ Este guia cobre o uso prático do stack de observabilidade implementado no proje
 
 ## Stack de Tecnologias
 
-| Componente         | Tecnologia                                  | Porta       |
-| ------------------ | ------------------------------------------- | ----------- |
-| Traces             | OpenTelemetry SDK + Grafana Tempo 2.6.1     | `3200`      |
-| Logs               | nestjs-pino + Grafana Loki                  | `3110`      |
-| Métricas           | prom-client (OpenMetrics) + Prometheus      | `9090`      |
-| Visualização       | Grafana 11.1                                | `3100`      |
-| Collector          | OTel Collector Contrib                      | `4317/4318` |
+| Componente   | Tecnologia                              | Porta       |
+| ------------ | --------------------------------------- | ----------- |
+| Traces       | OpenTelemetry SDK + Grafana Tempo 2.6.1 | `3200`      |
+| Logs         | nestjs-pino + Grafana Loki              | `3110`      |
+| Métricas     | prom-client (OpenMetrics) + Prometheus  | `9090`      |
+| Visualização | Grafana 11.1                            | `3100`      |
+| Collector    | OTel Collector Contrib                  | `4317/4318` |
 
 ---
 
@@ -39,21 +39,21 @@ docker compose ps
 
 Os containers esperados são:
 
-| Container       | Status  |
-| --------------- | ------- |
-| postgres-users  | healthy |
-| postgres-orders | healthy |
+| Container         | Status  |
+| ----------------- | ------- |
+| postgres-users    | healthy |
+| postgres-orders   | healthy |
 | postgres-payments | healthy |
-| rabbitmq        | healthy |
-| otel-collector  | running |
-| tempo           | running |
-| loki            | running |
-| prometheus      | running |
-| grafana         | running |
-| user-service    | running |
-| order-service   | running |
-| payment-service | running |
-| api-gateway     | running |
+| rabbitmq          | healthy |
+| otel-collector    | running |
+| tempo             | running |
+| loki              | running |
+| prometheus        | running |
+| grafana           | running |
+| user-service      | running |
+| order-service     | running |
+| payment-service   | running |
+| api-gateway       | running |
 
 ---
 
@@ -139,7 +139,10 @@ export class CreateOrderUseCase {
 
         try {
             const order = await this.repository.save(dto);
-            this.logger.logEvent('order.created', { orderId: order.id, totalAmount: order.totalAmount });
+            this.logger.logEvent('order.created', {
+                orderId: order.id,
+                totalAmount: order.totalAmount,
+            });
             return order;
         } catch (error) {
             this.logger.error('Failed to create order', error.stack, { userId: dto.userId });
@@ -152,13 +155,13 @@ export class CreateOrderUseCase {
 ### Níveis de log disponíveis
 
 ```typescript
-logger.trace('Detalhe de debug profundo');  // só em dev
+logger.trace('Detalhe de debug profundo'); // só em dev
 logger.debug('Debug info');
 logger.info('Operação normal');
 logger.warn('Aviso');
 logger.error('Erro', error.stack, { context });
 logger.fatal('Erro fatal');
-logger.logEvent('order.created', { orderId });  // log de evento de negócio
+logger.logEvent('order.created', { orderId }); // log de evento de negócio
 logger.logMetric('order_processing_time', ms, 'ms', { orderId }); // log de métrica
 ```
 
@@ -191,18 +194,18 @@ logger.logMetric('order_processing_time', ms, 'ms', { orderId }); // log de mét
 
 Cada serviço expõe métricas em `/metrics` no formato **OpenMetrics** (necessário para Exemplars).
 
-| Métrica                             | Tipo      | Labels                               | Descrição                            |
-| ----------------------------------- | --------- | ------------------------------------ | ------------------------------------ |
-| `http_request_duration_seconds`     | Histogram | `method`, `route`, `status_code`     | Latência das requisições HTTP        |
-| `http_requests_total`               | Counter   | `method`, `route`, `status_code`     | Total de requisições HTTP            |
-| `event_published_total`             | Counter   | `event_type`                         | Eventos publicados no RabbitMQ       |
-| `event_consumed_total`              | Counter   | `event_type`, `status`               | Eventos consumidos do RabbitMQ       |
-| `event_processing_duration_seconds` | Histogram | `event_type`                         | Duração do processamento de eventos  |
-| `consumer_lag`                      | Gauge     | `queue`                              | Mensagens pendentes por fila         |
-| `dlq_depth`                         | Gauge     | `queue`                              | Profundidade das DLQs                |
-| `orders_created_total`              | Counter   | `service`                            | Pedidos criados                      |
-| `orders_failed_total`               | Counter   | `service`                            | Pedidos com falha                    |
-| `payments_processed_total`          | Counter   | `service`                            | Pagamentos processados               |
+| Métrica                             | Tipo      | Labels                           | Descrição                           |
+| ----------------------------------- | --------- | -------------------------------- | ----------------------------------- |
+| `http_request_duration_seconds`     | Histogram | `method`, `route`, `status_code` | Latência das requisições HTTP       |
+| `http_requests_total`               | Counter   | `method`, `route`, `status_code` | Total de requisições HTTP           |
+| `event_published_total`             | Counter   | `event_type`                     | Eventos publicados no RabbitMQ      |
+| `event_consumed_total`              | Counter   | `event_type`, `status`           | Eventos consumidos do RabbitMQ      |
+| `event_processing_duration_seconds` | Histogram | `event_type`                     | Duração do processamento de eventos |
+| `consumer_lag`                      | Gauge     | `queue`                          | Mensagens pendentes por fila        |
+| `dlq_depth`                         | Gauge     | `queue`                          | Profundidade das DLQs               |
+| `orders_created_total`              | Counter   | `service`                        | Pedidos criados                     |
+| `orders_failed_total`               | Counter   | `service`                        | Pedidos com falha                   |
+| `payments_processed_total`          | Counter   | `service`                        | Pagamentos processados              |
 
 ### Exemplars — navegando de métrica para trace
 
@@ -210,9 +213,9 @@ Histogramas e Counters HTTP incluem **Exemplars** com o `traceId` OTel. Para vis
 
 1. **Grafana → Explore → Prometheus**
 2. Execute uma query de histograma:
-   ```promql
-   histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service="api-gateway"}[5m]))
-   ```
+    ```promql
+    histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service="api-gateway"}[5m]))
+    ```
 3. Clique no ícone de **barra de dispersão (scatter)** na visualização
 4. Os pontos no gráfico são os Exemplars — clique em um ponto para abrir o trace correspondente no Tempo
 
@@ -363,14 +366,14 @@ await tracer.startActiveSpan('PaymentGateway.charge', async (span) => {
 
 Cada serviço NestJS suporta as seguintes variáveis para controlar a observabilidade:
 
-| Variável                        | Padrão                          | Descrição                                   |
-| ------------------------------- | ------------------------------- | ------------------------------------------- |
-| `OTEL_SERVICE_NAME`             | (obrigatório)                   | Nome do serviço nos traces e métricas       |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`   | `http://otel-collector:4317`    | Endereço gRPC do OTel Collector             |
-| `OTEL_PROPAGATORS`              | `tracecontext,baggage`          | Propagadores W3C ativos                     |
-| `LOG_LEVEL`                     | `debug` (dev) / `info` (prod)  | Nível mínimo de log                         |
-| `NODE_ENV`                      | `development`                   | `production` desativa pino-pretty           |
-| `RABBITMQ_MGMT_URL`             | `http://rabbitmq:15672`         | URL da Management API do RabbitMQ           |
-| `RABBITMQ_USER`                 | `guest`                         | Usuário da Management API                   |
-| `RABBITMQ_PASS`                 | `guest`                         | Senha da Management API                     |
-| `APP_VERSION`                   | `1.0.0`                         | Versão exibida nos recursos OTel            |
+| Variável                      | Padrão                        | Descrição                             |
+| ----------------------------- | ----------------------------- | ------------------------------------- |
+| `OTEL_SERVICE_NAME`           | (obrigatório)                 | Nome do serviço nos traces e métricas |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector:4317`  | Endereço gRPC do OTel Collector       |
+| `OTEL_PROPAGATORS`            | `tracecontext,baggage`        | Propagadores W3C ativos               |
+| `LOG_LEVEL`                   | `debug` (dev) / `info` (prod) | Nível mínimo de log                   |
+| `NODE_ENV`                    | `development`                 | `production` desativa pino-pretty     |
+| `RABBITMQ_MGMT_URL`           | `http://rabbitmq:15672`       | URL da Management API do RabbitMQ     |
+| `RABBITMQ_USER`               | `guest`                       | Usuário da Management API             |
+| `RABBITMQ_PASS`               | `guest`                       | Senha da Management API               |
+| `APP_VERSION`                 | `1.0.0`                       | Versão exibida nos recursos OTel      |

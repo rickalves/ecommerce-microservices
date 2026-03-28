@@ -117,11 +117,11 @@ poll():
 
 #### Parâmetros configuráveis (constantes no arquivo)
 
-| Parâmetro         | Valor padrão | Descrição                            |
-| ----------------- | ------------ | ------------------------------------ |
-| `POLL_INTERVAL_MS`| 5000         | Intervalo entre ciclos de polling    |
-| `BATCH_SIZE`      | 50           | Máximo de registros por ciclo        |
-| `MAX_ATTEMPTS`    | 5            | Tentativas antes de marcar `FAILED`  |
+| Parâmetro          | Valor padrão | Descrição                           |
+| ------------------ | ------------ | ----------------------------------- |
+| `POLL_INTERVAL_MS` | 5000         | Intervalo entre ciclos de polling   |
+| `BATCH_SIZE`       | 50           | Máximo de registros por ciclo       |
+| `MAX_ATTEMPTS`     | 5            | Tentativas antes de marcar `FAILED` |
 
 ---
 
@@ -144,18 +144,18 @@ PENDING ────────────────────────
 
 ### order-service
 
-| Evento                  | Use Case                   |
-| ----------------------- | -------------------------- |
-| `order.created.accepted`| `CreateOrderUseCase`       |
-| `order.cancelled`       | `UpdateOrderStatusUseCase` |
+| Evento                   | Use Case                   |
+| ------------------------ | -------------------------- |
+| `order.created.accepted` | `CreateOrderUseCase`       |
+| `order.cancelled`        | `UpdateOrderStatusUseCase` |
 
 ### payment-service
 
-| Evento               | Use Case                  |
-| -------------------- | ------------------------- |
-| `payment.initiated`  | `ProcessPaymentUseCase`   |
-| `payment.completed`  | `ProcessPaymentUseCase`   |
-| `payment.failed`     | `ProcessPaymentUseCase`   |
+| Evento              | Use Case                |
+| ------------------- | ----------------------- |
+| `payment.initiated` | `ProcessPaymentUseCase` |
+| `payment.completed` | `ProcessPaymentUseCase` |
+| `payment.failed`    | `ProcessPaymentUseCase` |
 
 ---
 

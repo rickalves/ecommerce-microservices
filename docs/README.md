@@ -6,24 +6,24 @@
 
 ## Arquitetura
 
-| Documento                                                                    | Descrição                                                               |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [arquitetura.md](./architecture/arquitetura.md)                              | Visão geral da arquitetura, camadas DDD, fluxo de eventos               |
-| [outbox-pattern.md](./architecture/outbox-pattern.md)                        | Outbox Pattern: componentes, fluxo de estado, eventos cobertos  Implementado |
-| [observabilidade-arquitetura.md](./architecture/observabilidade-arquitetura.md) | Arquitetura do stack OTel: componentes, design e infra  Implementado |
-| [observabilidade-guia.md](./architecture/observabilidade-guia.md)            | Guia legado — logging estruturado com Pino e CorrelationId (Fase 1)     |
-| [fase1-resumo.md](./architecture/fase1-resumo.md)                            | Resumo da Fase 1: logging estruturado com Pino e CorrelationId          |
+| Documento                                                                       | Descrição                                                                   |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [arquitetura.md](./architecture/arquitetura.md)                                 | Visão geral da arquitetura, camadas DDD, fluxo de eventos                   |
+| [outbox-pattern.md](./architecture/outbox-pattern.md)                           | Outbox Pattern: componentes, fluxo de estado, eventos cobertos Implementado |
+| [observabilidade-arquitetura.md](./architecture/observabilidade-arquitetura.md) | Arquitetura do stack OTel: componentes, design e infra Implementado         |
+| [observabilidade-guia.md](./architecture/observabilidade-guia.md)               | Guia legado — logging estruturado com Pino e CorrelationId (Fase 1)         |
+| [fase1-resumo.md](./architecture/fase1-resumo.md)                               | Resumo da Fase 1: logging estruturado com Pino e CorrelationId              |
 
 ---
 
 ## Guias de Desenvolvimento
 
-| Documento                                                         | Descrição                                                                      |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [comandos.md](./guides/comandos.md)                               | Referência completa de comandos (Docker, pnpm, migrações, testes, outbox)      |
-| [observabilidade-uso.md](./guides/observabilidade-uso.md)         | Como usar o stack OTel: traces, logs, métricas, Exemplars, health checks    |
-| [exemplos.md](./guides/exemplos.md)                               | Exemplos práticos de fluxos completos via cURL                                 |
-| [teste-http-direto.md](./guides/teste-http-direto.md)             | Guia de testes de comunicação HTTP direta entre serviços                       |
+| Documento                                                 | Descrição                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [comandos.md](./guides/comandos.md)                       | Referência completa de comandos (Docker, pnpm, migrações, testes, outbox) |
+| [observabilidade-uso.md](./guides/observabilidade-uso.md) | Como usar o stack OTel: traces, logs, métricas, Exemplars, health checks  |
+| [exemplos.md](./guides/exemplos.md)                       | Exemplos práticos de fluxos completos via cURL                            |
+| [teste-http-direto.md](./guides/teste-http-direto.md)     | Guia de testes de comunicação HTTP direta entre serviços                  |
 
 ---
 

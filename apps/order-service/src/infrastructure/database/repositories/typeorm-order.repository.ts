@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IOrderRepository, OutboxEntry } from '../../../domain/repositories/order.repository.interface';
+import {
+    IOrderRepository,
+    OutboxEntry,
+} from '../../../domain/repositories/order.repository.interface';
 import { Order } from '../../../domain/entities/order.entity';
 import { OrderEntity } from '../entities/order.entity';
 import { OutboxEntity } from '../entities/outbox.entity';

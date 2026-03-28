@@ -43,7 +43,11 @@ export class MetricsInterceptor implements NestInterceptor {
             const labels = { method, route: routePath, status_code: statusCode };
 
             if (exemplar) {
-                this.metrics.httpRequestDuration.observe({ labels, value: duration, exemplarLabels: exemplar });
+                this.metrics.httpRequestDuration.observe({
+                    labels,
+                    value: duration,
+                    exemplarLabels: exemplar,
+                });
                 this.metrics.httpRequestsTotal.inc({ labels, exemplarLabels: exemplar });
             } else {
                 this.metrics.httpRequestDuration.observe(labels, duration);
@@ -94,7 +98,10 @@ export class MetricsInterceptor implements NestInterceptor {
                         exemplarLabels: exemplar,
                     });
                 } else {
-                    this.metrics.eventProcessingDuration.observe({ event_type: eventType }, duration);
+                    this.metrics.eventProcessingDuration.observe(
+                        { event_type: eventType },
+                        duration
+                    );
                 }
             }),
             catchError((error) => {
